@@ -1,0 +1,374 @@
+// SQLite schema for local dev (enums replaced with String, Json replaced with String)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("COACH")
+  isActive     Boolean  @default(true)
+  teamId       Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  trainingPlansCreated  TrainingPlan[] @relation("CoachPlans")
+  trainingRecordsRecorded TrainingRecord[] @relation("RecordedBy")
+  fitnessRecordsRecorded  FitnessRecord[]  @relation("FitnessRecordedBy")
+  injuriesRecorded        Injury[]         @relation("InjuryRecordedBy")
+  healthMetricsRecorded   HealthMetric[]   @relation("HealthMetricRecordedBy")
+  loadRecordsRecorded     LoadRecord[]     @relation("LoadRecordedBy")
+  auditLogs AuditLog[]
+  fitnessPlansCreated FitnessTestPlan[] @relation("FitnessPlanCreator")
+
+  @@map("users")
+}
+
+model Athlete {
+  id        Int      @id @default(autoincrement())
+  name      String
+  gender    String
+  birthDate DateTime
+  height    Float?
+  weight    Float?
+  sport     String
+  position  String?
+  joinDate  DateTime
+  photoUrl  String?
+  status    String   @default("ACTIVE")
+  metadata  String   @default("{}")
+  teamId    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planAthletes      TrainingPlanAthlete[]
+  trainingRecords   TrainingRecord[]
+  personalBests     PersonalBest[]
+  fitnessRecords    FitnessRecord[]
+  injuries          Injury[]
+  healthMetrics     HealthMetric[]
+  loadRecords       LoadRecord[]
+  riskReports       InjuryRiskReport[]
+  fitnessPlanParticipants FitnessTestPlanParticipant[]
+
+  @@map("athletes")
+}
+
+model Exercise {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique
+  category       String
+  unit           String
+  description    String?
+  difficulty     String?
+  targetMuscles  String?
+  equipment      String?
+  demoImageUrl   String?
+  demoVideoUrl   String?
+  isFavorite     Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  isPBTrackable  Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  planItems       TrainingPlanItem[]
+  records         TrainingRecord[]
+  personalBests   PersonalBest[]
+
+  @@index([category])
+  @@index([isFavorite])
+  @@map("exercises")
+}
+
+model TrainingPlan {
+  id        Int        @id @default(autoincrement())
+  coachId   Int
+  goal      String?
+  status    String   @default("DRAFT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach   User     @relation("CoachPlans", fields: [coachId], references: [id])
+  items   TrainingPlanItem[]
+  planAthletes TrainingPlanAthlete[]
+
+  @@map("training_plans")
+}
+
+model TrainingPlanAthlete {
+  id        Int       @id @default(autoincrement())
+  planId    Int
+  athleteId Int
+
+  plan    TrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  athlete Athlete      @relation(fields: [athleteId], references: [id])
+
+  @@unique([planId, athleteId])
+  @@map("training_plan_athletes")
+}
+
+model TrainingPlanItem {
+  id          Int     @id @default(autoincrement())
+  planId      Int
+  dayOfWeek   Int
+  exerciseId  Int
+  sets        Int
+  reps        Int
+  load        Float?
+  restSeconds Int?
+  sortOrder   Int     @default(0)
+  notes       String?
+
+  plan     TrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercise Exercise     @relation(fields: [exerciseId], references: [id])
+
+  @@index([planId, dayOfWeek, sortOrder])
+  @@map("training_plan_items")
+}
+
+model TrainingRecord {
+  id            Int      @id @default(autoincrement())
+  athleteId     Int
+  planItemId    Int?
+  exerciseId    Int
+  actualSets    Int
+  actualReps    Int
+  actualLoad    Float?
+  trainingDate  DateTime
+  rpe           Int?
+  notes         String?
+  recordedById  Int
+  createdAt     DateTime @default(now())
+
+  athlete    Athlete  @relation(fields: [athleteId], references: [id])
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  recordedBy User     @relation("RecordedBy", fields: [recordedById], references: [id])
+
+  @@index([athleteId, exerciseId, trainingDate])
+  @@map("training_records")
+}
+
+model PersonalBest {
+  id           Int      @id @default(autoincrement())
+  athleteId    Int
+  exerciseId   Int
+  value        Float
+  unit         String
+  achievedDate DateTime
+  recordId     Int?     // 关联训练记录 ID（手动录入的 PB 为 null）
+  createdAt    DateTime @default(now())
+
+  athlete  Athlete  @relation(fields: [athleteId], references: [id])
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([athleteId, exerciseId])
+  @@map("personal_bests")
+}
+
+model FitnessTest {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  category          String
+  unit              String
+  direction         String   @default("HIGHER_BETTER")
+  warningThreshold  Float?
+  description       String?
+  purpose           String?
+  applicableGroup   String?
+  equipment         String?
+  demoVideoUrl      String?
+  diagramUrl        String?
+  scoringStandard   String?
+  referenceRange    String?
+  precautions       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  records   FitnessRecord[]
+  planItems FitnessTestPlanItem[]
+
+  @@map("fitness_tests")
+}
+
+model FitnessRecord {
+  id           Int      @id @default(autoincrement())
+  athleteId    Int
+  testId       Int
+  value        Float
+  testDate     DateTime
+  recordedById Int
+  createdAt    DateTime @default(now())
+
+  athlete    Athlete     @relation(fields: [athleteId], references: [id])
+  test       FitnessTest @relation(fields: [testId], references: [id])
+  recordedBy User        @relation("FitnessRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([athleteId, testId, testDate])
+  @@map("fitness_records")
+}
+
+model Injury {
+  id           Int      @id @default(autoincrement())
+  athleteId    Int
+  injuryType   String
+  description  String
+  startDate    DateTime
+  endDate      DateTime?
+  status       String   @default("INJURED")
+  recordedById Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  athlete      Athlete      @relation(fields: [athleteId], references: [id])
+  recordedBy   User         @relation("InjuryRecordedBy", fields: [recordedById], references: [id])
+  recoveryPlan RecoveryPlan?
+
+  @@map("injuries")
+}
+
+model RecoveryPlan {
+  id                Int      @id @default(autoincrement())
+  injuryId          Int      @unique
+  content           String
+  startDate         DateTime
+  targetReturnDate  DateTime
+  status            String   @default("IN_PROGRESS")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  injury Injury @relation(fields: [injuryId], references: [id])
+
+  @@map("recovery_plans")
+}
+
+model HealthMetric {
+  id           Int      @id @default(autoincrement())
+  athleteId    Int
+  metricType   String
+  value        Float
+  unit         String
+  recordedAt   DateTime
+  source       String   @default("MANUAL")
+  recordedById Int?
+  createdAt    DateTime @default(now())
+
+  athlete    Athlete @relation(fields: [athleteId], references: [id])
+  recordedBy User?   @relation("HealthMetricRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([athleteId, metricType, recordedAt])
+  @@map("health_metrics")
+}
+
+model LoadRecord {
+  id              Int      @id @default(autoincrement())
+  athleteId       Int
+  recordDate      DateTime
+  rpe             Int
+  durationMinutes Int
+  trainingType    String?
+  notes           String?
+  recordedById    Int
+  createdAt       DateTime @default(now())
+
+  athlete    Athlete @relation(fields: [athleteId], references: [id])
+  recordedBy User    @relation("LoadRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([athleteId, recordDate])
+  @@map("load_records")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  action     String
+  targetType String
+  targetId   String?
+  detail     String   @default("{}")
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([targetType, createdAt])
+  @@map("audit_logs")
+}
+
+model InjuryRiskReport {
+  id                 Int      @id @default(autoincrement())
+  athleteId          Int
+  riskLevel          String
+  riskScore          Int
+  riskFactors        String
+  warningSignals     String
+  preventionAdvice   String
+  trainingAdjustment String
+  rawContent         String
+  provider           String
+  weeksRange         Int
+  createdAt          DateTime @default(now())
+
+  athlete Athlete @relation(fields: [athleteId], references: [id])
+
+  @@index([athleteId, createdAt])
+  @@map("injury_risk_reports")
+}
+
+model FitnessTestPlan {
+  id                Int      @id @default(autoincrement())
+  name              String
+  testDate          DateTime
+  startTime         String?
+  estimatedDuration Int?
+  location          String?
+  weather           String?
+  venueCondition    String?
+  status            String   @default("DRAFT")
+  notes             String?
+  createdById       Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  createdBy   User                     @relation("FitnessPlanCreator", fields: [createdById], references: [id])
+  items       FitnessTestPlanItem[]
+  participants FitnessTestPlanParticipant[]
+
+  @@index([testDate])
+  @@map("fitness_test_plans")
+}
+
+model FitnessTestPlanItem {
+  id               Int      @id @default(autoincrement())
+  planId           Int
+  testId           Int
+  sortOrder        Int      @default(0)
+  groupName        String?
+  allocatedMinutes Int?
+  equipmentReady   Boolean  @default(false)
+
+  plan FitnessTestPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  test FitnessTest     @relation(fields: [testId], references: [id])
+
+  @@index([planId, sortOrder])
+  @@map("fitness_test_plan_items")
+}
+
+model FitnessTestPlanParticipant {
+  id        Int @id @default(autoincrement())
+  planId    Int
+  athleteId Int
+
+  plan    FitnessTestPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  athlete Athlete         @relation(fields: [athleteId], references: [id])
+
+  @@unique([planId, athleteId])
+  @@map("fitness_test_plan_participants")
+}

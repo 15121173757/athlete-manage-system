@@ -29,6 +29,22 @@ dist/
 build/
 *.tsbuildinfo
 
+# Next.js
+.next/
+out/
+
 # Cache
 .cache/
 .parcel-cache/
+
+# Prisma
+prisma/migrations/dev.db*
+prisma/dev.db*
+prisma/*.db
+
+# Uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Trae skill (内部资源)
+.trae/

@@ -1,0 +1,1778 @@
+[
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-01",
+    "rpe": 6,
+    "durationMinutes": 102,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-01 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-02",
+    "rpe": 5,
+    "durationMinutes": 64,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-02 技巧训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-03",
+    "rpe": 9,
+    "durationMinutes": 51,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-03 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-04",
+    "rpe": 9,
+    "durationMinutes": 77,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-04 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-05",
+    "rpe": 2,
+    "durationMinutes": 17,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-05 恢复训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-06",
+    "rpe": 8,
+    "durationMinutes": 68,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-06 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-07",
+    "rpe": 7,
+    "durationMinutes": 54,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-07 速度训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-08",
+    "rpe": 6,
+    "durationMinutes": 108,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-08 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-09",
+    "rpe": 4,
+    "durationMinutes": 54,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-09 柔韧训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-10",
+    "rpe": 9,
+    "durationMinutes": 54,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-10 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-11",
+    "rpe": 9,
+    "durationMinutes": 81,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-11 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-12",
+    "rpe": 2,
+    "durationMinutes": 18,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-12 恢复训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-13",
+    "rpe": 8,
+    "durationMinutes": 71,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-13 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-14",
+    "rpe": 7,
+    "durationMinutes": 57,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-14 速度训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-15",
+    "rpe": 6,
+    "durationMinutes": 114,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-15 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-16",
+    "rpe": 5,
+    "durationMinutes": 71,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-16 技巧训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-17",
+    "rpe": 9,
+    "durationMinutes": 57,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-17 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-18",
+    "rpe": 9,
+    "durationMinutes": 86,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-18 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-19",
+    "rpe": 2,
+    "durationMinutes": 19,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-19 恢复训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-20",
+    "rpe": 8,
+    "durationMinutes": 75,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-20 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-21",
+    "rpe": 7,
+    "durationMinutes": 60,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-21 速度训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-22",
+    "rpe": 6,
+    "durationMinutes": 120,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-22 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-23",
+    "rpe": 4,
+    "durationMinutes": 60,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-23 柔韧训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-24",
+    "rpe": 9,
+    "durationMinutes": 60,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-24 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-25",
+    "rpe": 9,
+    "durationMinutes": 90,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-25 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-26",
+    "rpe": 2,
+    "durationMinutes": 20,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-26 恢复训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-27",
+    "rpe": 8,
+    "durationMinutes": 60,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-27 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-28",
+    "rpe": 7,
+    "durationMinutes": 48,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-28 速度训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-29",
+    "rpe": 6,
+    "durationMinutes": 96,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-29 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-30",
+    "rpe": 5,
+    "durationMinutes": 60,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-30 技巧训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-07-31",
+    "rpe": 9,
+    "durationMinutes": 144,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-31 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-08-01",
+    "rpe": 9,
+    "durationMinutes": 216,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-01 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-08-02",
+    "rpe": 2,
+    "durationMinutes": 48,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-08-02 恢复训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-08-03",
+    "rpe": 8,
+    "durationMinutes": 180,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-08-03 力量训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-08-04",
+    "rpe": 7,
+    "durationMinutes": 144,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-08-04 速度训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-08-05",
+    "rpe": 6,
+    "durationMinutes": 288,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-05 耐力训练"
+  },
+  {
+    "athleteId": 1,
+    "recordDate": "2026-08-06",
+    "rpe": 4,
+    "durationMinutes": 144,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-08-06 柔韧训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-01",
+    "rpe": 6,
+    "durationMinutes": 92,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-01 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-02",
+    "rpe": 5,
+    "durationMinutes": 57,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-02 技巧训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-03",
+    "rpe": 9,
+    "durationMinutes": 46,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-03 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-04",
+    "rpe": 9,
+    "durationMinutes": 69,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-04 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-05",
+    "rpe": 2,
+    "durationMinutes": 15,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-05 恢复训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-06",
+    "rpe": 8,
+    "durationMinutes": 61,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-06 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-07",
+    "rpe": 7,
+    "durationMinutes": 49,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-07 速度训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-08",
+    "rpe": 6,
+    "durationMinutes": 97,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-08 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-09",
+    "rpe": 4,
+    "durationMinutes": 49,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-09 柔韧训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-10",
+    "rpe": 9,
+    "durationMinutes": 49,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-10 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-11",
+    "rpe": 9,
+    "durationMinutes": 73,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-11 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-12",
+    "rpe": 2,
+    "durationMinutes": 16,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-12 恢复训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-13",
+    "rpe": 8,
+    "durationMinutes": 64,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-13 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-14",
+    "rpe": 7,
+    "durationMinutes": 51,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-14 速度训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-15",
+    "rpe": 6,
+    "durationMinutes": 103,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-15 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-16",
+    "rpe": 5,
+    "durationMinutes": 64,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-16 技巧训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-17",
+    "rpe": 9,
+    "durationMinutes": 51,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-17 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-18",
+    "rpe": 9,
+    "durationMinutes": 77,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-18 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-19",
+    "rpe": 2,
+    "durationMinutes": 17,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-19 恢复训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-20",
+    "rpe": 8,
+    "durationMinutes": 68,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-20 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-21",
+    "rpe": 7,
+    "durationMinutes": 54,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-21 速度训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-22",
+    "rpe": 6,
+    "durationMinutes": 108,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-22 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-23",
+    "rpe": 4,
+    "durationMinutes": 54,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-23 柔韧训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-24",
+    "rpe": 9,
+    "durationMinutes": 54,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-24 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-25",
+    "rpe": 9,
+    "durationMinutes": 81,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-25 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-26",
+    "rpe": 2,
+    "durationMinutes": 18,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-26 恢复训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-27",
+    "rpe": 8,
+    "durationMinutes": 54,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-27 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-28",
+    "rpe": 7,
+    "durationMinutes": 43,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-28 速度训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-29",
+    "rpe": 6,
+    "durationMinutes": 86,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-29 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-30",
+    "rpe": 5,
+    "durationMinutes": 54,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-30 技巧训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-07-31",
+    "rpe": 9,
+    "durationMinutes": 54,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-31 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-08-01",
+    "rpe": 9,
+    "durationMinutes": 81,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-01 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-08-02",
+    "rpe": 2,
+    "durationMinutes": 18,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-08-02 恢复训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-08-03",
+    "rpe": 8,
+    "durationMinutes": 68,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-08-03 力量训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-08-04",
+    "rpe": 7,
+    "durationMinutes": 54,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-08-04 速度训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-08-05",
+    "rpe": 6,
+    "durationMinutes": 108,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-05 耐力训练"
+  },
+  {
+    "athleteId": 2,
+    "recordDate": "2026-08-06",
+    "rpe": 4,
+    "durationMinutes": 54,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-08-06 柔韧训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-01",
+    "rpe": 6,
+    "durationMinutes": 87,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-01 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-02",
+    "rpe": 5,
+    "durationMinutes": 54,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-02 技巧训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-03",
+    "rpe": 9,
+    "durationMinutes": 43,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-03 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-04",
+    "rpe": 9,
+    "durationMinutes": 65,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-04 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-05",
+    "rpe": 2,
+    "durationMinutes": 14,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-05 恢复训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-06",
+    "rpe": 8,
+    "durationMinutes": 57,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-06 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-07",
+    "rpe": 7,
+    "durationMinutes": 46,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-07 速度训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-08",
+    "rpe": 6,
+    "durationMinutes": 92,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-08 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-09",
+    "rpe": 4,
+    "durationMinutes": 46,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-09 柔韧训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-10",
+    "rpe": 9,
+    "durationMinutes": 46,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-10 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-11",
+    "rpe": 9,
+    "durationMinutes": 69,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-11 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-12",
+    "rpe": 2,
+    "durationMinutes": 15,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-12 恢复训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-13",
+    "rpe": 8,
+    "durationMinutes": 61,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-13 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-14",
+    "rpe": 7,
+    "durationMinutes": 48,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-14 速度训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-15",
+    "rpe": 6,
+    "durationMinutes": 97,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-15 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-16",
+    "rpe": 5,
+    "durationMinutes": 61,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-16 技巧训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-17",
+    "rpe": 9,
+    "durationMinutes": 48,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-17 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-18",
+    "rpe": 9,
+    "durationMinutes": 73,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-18 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-19",
+    "rpe": 2,
+    "durationMinutes": 16,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-19 恢复训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-20",
+    "rpe": 8,
+    "durationMinutes": 64,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-20 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-21",
+    "rpe": 7,
+    "durationMinutes": 51,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-21 速度训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-22",
+    "rpe": 6,
+    "durationMinutes": 102,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-22 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-23",
+    "rpe": 4,
+    "durationMinutes": 51,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-23 柔韧训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-24",
+    "rpe": 9,
+    "durationMinutes": 51,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-24 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-25",
+    "rpe": 9,
+    "durationMinutes": 77,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-25 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-26",
+    "rpe": 2,
+    "durationMinutes": 17,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-26 恢复训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-27",
+    "rpe": 8,
+    "durationMinutes": 51,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-27 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-28",
+    "rpe": 7,
+    "durationMinutes": 41,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-28 速度训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-29",
+    "rpe": 6,
+    "durationMinutes": 82,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-29 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-30",
+    "rpe": 5,
+    "durationMinutes": 51,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-30 技巧训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-07-31",
+    "rpe": 9,
+    "durationMinutes": 10,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-31 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-08-01",
+    "rpe": 9,
+    "durationMinutes": 15,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-01 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-08-02",
+    "rpe": 2,
+    "durationMinutes": 10,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-08-02 恢复训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-08-03",
+    "rpe": 8,
+    "durationMinutes": 13,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-08-03 力量训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-08-04",
+    "rpe": 7,
+    "durationMinutes": 10,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-08-04 速度训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-08-05",
+    "rpe": 6,
+    "durationMinutes": 20,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-05 耐力训练"
+  },
+  {
+    "athleteId": 3,
+    "recordDate": "2026-08-06",
+    "rpe": 4,
+    "durationMinutes": 10,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-08-06 柔韧训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-01",
+    "rpe": 6,
+    "durationMinutes": 97,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-01 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-02",
+    "rpe": 5,
+    "durationMinutes": 61,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-02 技巧训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-03",
+    "rpe": 9,
+    "durationMinutes": 48,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-03 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-04",
+    "rpe": 9,
+    "durationMinutes": 73,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-04 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-05",
+    "rpe": 2,
+    "durationMinutes": 16,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-05 恢复训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-06",
+    "rpe": 8,
+    "durationMinutes": 64,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-06 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-07",
+    "rpe": 7,
+    "durationMinutes": 51,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-07 速度训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-08",
+    "rpe": 6,
+    "durationMinutes": 103,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-08 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-09",
+    "rpe": 4,
+    "durationMinutes": 51,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-09 柔韧训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-10",
+    "rpe": 9,
+    "durationMinutes": 51,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-10 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-11",
+    "rpe": 9,
+    "durationMinutes": 77,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-11 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-12",
+    "rpe": 2,
+    "durationMinutes": 17,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-12 恢复训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-13",
+    "rpe": 8,
+    "durationMinutes": 68,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-13 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-14",
+    "rpe": 7,
+    "durationMinutes": 54,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-14 速度训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-15",
+    "rpe": 6,
+    "durationMinutes": 108,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-15 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-16",
+    "rpe": 5,
+    "durationMinutes": 68,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-16 技巧训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-17",
+    "rpe": 9,
+    "durationMinutes": 54,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-17 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-18",
+    "rpe": 9,
+    "durationMinutes": 81,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-18 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-19",
+    "rpe": 2,
+    "durationMinutes": 18,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-19 恢复训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-20",
+    "rpe": 8,
+    "durationMinutes": 71,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-20 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-21",
+    "rpe": 7,
+    "durationMinutes": 57,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-21 速度训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-22",
+    "rpe": 6,
+    "durationMinutes": 114,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-22 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-23",
+    "rpe": 4,
+    "durationMinutes": 57,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-23 柔韧训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-24",
+    "rpe": 9,
+    "durationMinutes": 57,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-24 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-25",
+    "rpe": 9,
+    "durationMinutes": 86,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-25 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-26",
+    "rpe": 2,
+    "durationMinutes": 19,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-26 恢复训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-27",
+    "rpe": 8,
+    "durationMinutes": 57,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-27 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-28",
+    "rpe": 7,
+    "durationMinutes": 46,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-28 速度训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-29",
+    "rpe": 6,
+    "durationMinutes": 91,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-29 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-30",
+    "rpe": 5,
+    "durationMinutes": 57,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-30 技巧训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-07-31",
+    "rpe": 9,
+    "durationMinutes": 103,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-31 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-08-01",
+    "rpe": 9,
+    "durationMinutes": 154,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-01 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-08-02",
+    "rpe": 2,
+    "durationMinutes": 34,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-08-02 恢复训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-08-03",
+    "rpe": 8,
+    "durationMinutes": 128,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-08-03 力量训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-08-04",
+    "rpe": 7,
+    "durationMinutes": 103,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-08-04 速度训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-08-05",
+    "rpe": 6,
+    "durationMinutes": 205,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-05 耐力训练"
+  },
+  {
+    "athleteId": 4,
+    "recordDate": "2026-08-06",
+    "rpe": 4,
+    "durationMinutes": 103,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-08-06 柔韧训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-01",
+    "rpe": 6,
+    "durationMinutes": 117,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-01 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-02",
+    "rpe": 5,
+    "durationMinutes": 73,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-02 技巧训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-03",
+    "rpe": 9,
+    "durationMinutes": 59,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-03 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-04",
+    "rpe": 9,
+    "durationMinutes": 88,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-04 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-05",
+    "rpe": 2,
+    "durationMinutes": 20,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-05 恢复训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-06",
+    "rpe": 8,
+    "durationMinutes": 78,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-06 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-07",
+    "rpe": 7,
+    "durationMinutes": 62,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-07 速度训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-08",
+    "rpe": 6,
+    "durationMinutes": 124,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-08 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-09",
+    "rpe": 4,
+    "durationMinutes": 62,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-09 柔韧训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-10",
+    "rpe": 9,
+    "durationMinutes": 62,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-10 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-11",
+    "rpe": 9,
+    "durationMinutes": 93,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-11 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-12",
+    "rpe": 2,
+    "durationMinutes": 21,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-12 恢复训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-13",
+    "rpe": 8,
+    "durationMinutes": 82,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-13 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-14",
+    "rpe": 7,
+    "durationMinutes": 66,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-14 速度训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-15",
+    "rpe": 6,
+    "durationMinutes": 131,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-15 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-16",
+    "rpe": 5,
+    "durationMinutes": 82,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-16 技巧训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-17",
+    "rpe": 9,
+    "durationMinutes": 66,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-17 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-18",
+    "rpe": 9,
+    "durationMinutes": 98,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-18 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-19",
+    "rpe": 2,
+    "durationMinutes": 22,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-19 恢复训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-20",
+    "rpe": 8,
+    "durationMinutes": 86,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-20 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-21",
+    "rpe": 7,
+    "durationMinutes": 69,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-21 速度训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-22",
+    "rpe": 6,
+    "durationMinutes": 138,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-22 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-23",
+    "rpe": 4,
+    "durationMinutes": 69,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-23 柔韧训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-24",
+    "rpe": 9,
+    "durationMinutes": 69,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-24 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-25",
+    "rpe": 9,
+    "durationMinutes": 103,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-25 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-26",
+    "rpe": 2,
+    "durationMinutes": 23,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-26 恢复训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-27",
+    "rpe": 8,
+    "durationMinutes": 69,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-27 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-28",
+    "rpe": 7,
+    "durationMinutes": 55,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-28 速度训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-29",
+    "rpe": 6,
+    "durationMinutes": 110,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-29 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-30",
+    "rpe": 5,
+    "durationMinutes": 69,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-30 技巧训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-07-31",
+    "rpe": 9,
+    "durationMinutes": 69,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-31 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-08-01",
+    "rpe": 9,
+    "durationMinutes": 103,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-01 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-08-02",
+    "rpe": 2,
+    "durationMinutes": 23,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-08-02 恢复训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-08-03",
+    "rpe": 8,
+    "durationMinutes": 86,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-08-03 力量训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-08-04",
+    "rpe": 7,
+    "durationMinutes": 69,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-08-04 速度训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-08-05",
+    "rpe": 6,
+    "durationMinutes": 138,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-05 耐力训练"
+  },
+  {
+    "athleteId": 5,
+    "recordDate": "2026-08-06",
+    "rpe": 4,
+    "durationMinutes": 69,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-08-06 柔韧训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-01",
+    "rpe": 6,
+    "durationMinutes": 107,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-01 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-02",
+    "rpe": 5,
+    "durationMinutes": 67,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-02 技巧训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-03",
+    "rpe": 9,
+    "durationMinutes": 54,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-03 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-04",
+    "rpe": 9,
+    "durationMinutes": 80,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-04 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-05",
+    "rpe": 2,
+    "durationMinutes": 18,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-05 恢复训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-06",
+    "rpe": 8,
+    "durationMinutes": 71,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-06 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-07",
+    "rpe": 7,
+    "durationMinutes": 57,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-07 速度训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-08",
+    "rpe": 6,
+    "durationMinutes": 113,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-08 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-09",
+    "rpe": 4,
+    "durationMinutes": 57,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-09 柔韧训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-10",
+    "rpe": 9,
+    "durationMinutes": 57,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-10 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-11",
+    "rpe": 9,
+    "durationMinutes": 85,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-11 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-12",
+    "rpe": 2,
+    "durationMinutes": 19,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-12 恢复训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-13",
+    "rpe": 8,
+    "durationMinutes": 75,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-13 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-14",
+    "rpe": 7,
+    "durationMinutes": 60,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-14 速度训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-15",
+    "rpe": 6,
+    "durationMinutes": 120,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-15 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-16",
+    "rpe": 5,
+    "durationMinutes": 75,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-16 技巧训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-17",
+    "rpe": 9,
+    "durationMinutes": 60,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-17 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-18",
+    "rpe": 9,
+    "durationMinutes": 90,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-18 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-19",
+    "rpe": 2,
+    "durationMinutes": 20,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-19 恢复训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-20",
+    "rpe": 8,
+    "durationMinutes": 79,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-20 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-21",
+    "rpe": 7,
+    "durationMinutes": 63,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-21 速度训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-22",
+    "rpe": 6,
+    "durationMinutes": 126,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-22 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-23",
+    "rpe": 4,
+    "durationMinutes": 63,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-07-23 柔韧训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-24",
+    "rpe": 9,
+    "durationMinutes": 63,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-24 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-25",
+    "rpe": 9,
+    "durationMinutes": 95,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-25 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-26",
+    "rpe": 2,
+    "durationMinutes": 21,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-07-26 恢复训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-27",
+    "rpe": 8,
+    "durationMinutes": 63,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-27 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-28",
+    "rpe": 7,
+    "durationMinutes": 50,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-07-28 速度训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-29",
+    "rpe": 6,
+    "durationMinutes": 101,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-07-29 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-30",
+    "rpe": 5,
+    "durationMinutes": 63,
+    "trainingType": "技巧",
+    "notes": "测试数据 2026-07-30 技巧训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-07-31",
+    "rpe": 9,
+    "durationMinutes": 164,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-07-31 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-08-01",
+    "rpe": 9,
+    "durationMinutes": 246,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-01 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-08-02",
+    "rpe": 2,
+    "durationMinutes": 55,
+    "trainingType": "恢复",
+    "notes": "测试数据 2026-08-02 恢复训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-08-03",
+    "rpe": 8,
+    "durationMinutes": 205,
+    "trainingType": "力量",
+    "notes": "测试数据 2026-08-03 力量训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-08-04",
+    "rpe": 7,
+    "durationMinutes": 164,
+    "trainingType": "速度",
+    "notes": "测试数据 2026-08-04 速度训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-08-05",
+    "rpe": 6,
+    "durationMinutes": 328,
+    "trainingType": "耐力",
+    "notes": "测试数据 2026-08-05 耐力训练"
+  },
+  {
+    "athleteId": 6,
+    "recordDate": "2026-08-06",
+    "rpe": 4,
+    "durationMinutes": 164,
+    "trainingType": "柔韧",
+    "notes": "测试数据 2026-08-06 柔韧训练"
+  }
+]

@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * 全局样式 —— 运动员管理系统（AMS）
+ *
+ * 设计理念：深色专业运动数据台
+ * 所有自定义样式优先通过 Tailwind 工具类实现，
+ * 此文件仅放置无法用工具类表达的全局基础样式。
+ */
+
+@layer base {
+  /* 根元素：默认深色主题 */
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ams-background text-ams-text-primary antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+  }
+
+  /* 标题层级 */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight text-ams-text-primary;
+  }
+
+  /* 链接默认样式 */
+  a {
+    @apply text-ams-primary transition-colors hover:text-ams-primary-hover;
+  }
+}
+
+@layer components {
+  /* 通用卡片容器 */
+  .ams-card {
+    @apply rounded-ams-lg bg-ams-surface border border-ams-border shadow-ams-card;
+  }
+
+  /* 卡片悬停效果（用于可点击卡片） */
+  .ams-card-hover {
+    @apply transition-all hover:shadow-ams-card-hover hover:border-ams-primary/50;
+  }
+
+  /* 数据表格表头 */
+  .ams-table-header {
+    @apply text-ams-text-secondary text-xs font-medium uppercase tracking-wider;
+  }
+}
+
+@layer utilities {
+  /* 自定义滚动条（深色主题适配） */
+  .ams-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .ams-scrollbar::-webkit-scrollbar-track {
+    @apply bg-ams-background;
+  }
+  .ams-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-ams-border rounded-full;
+  }
+  .ams-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-ams-text-muted;
+  }
+}
