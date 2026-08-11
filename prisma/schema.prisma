@@ -37,6 +37,7 @@ model User {
   trainingRecordsRecorded TrainingRecord[] @relation("RecordedBy")
   fitnessRecordsRecorded  FitnessRecord[]  @relation("FitnessRecordedBy")
   injuriesRecorded        Injury[]         @relation("InjuryRecordedBy")
+  injuryHistories         InjuryHistory[]  @relation("InjuryHistoryOperator")
   healthMetricsRecorded   HealthMetric[]   @relation("HealthMetricRecordedBy")
   loadRecordsRecorded     LoadRecord[]     @relation("LoadRecordedBy")
   // 审计日志
@@ -251,22 +252,48 @@ model FitnessRecord {
 // ============================================================
 
 model Injury {
-  id           Int           @id @default(autoincrement())
-  athleteId    Int                                   // 运动员 ID
-  injuryType   String                                // 伤病类型
-  description  String                                // 描述
-  startDate    DateTime                              // 受伤日期
-  endDate      DateTime?                             // 痊愈日期
-  status       String  @default("INJURED")       // 状态
-  recordedById Int                                   // 录入人 ID（医研人员）
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             Int           @id @default(autoincrement())
+  athleteId      Int                                   // 运动员 ID
+  injuryType     String                                // 伤病类型
+  description    String                                // 描述
+  bodyPart       String?                               // 受伤部位
+  cause          String?                               // 受伤原因
+  diagnosis      String?                               // 诊断结果
+  treatment      String?                               // 治疗方案
+  attachmentPath String?                               // 附件存储路径
+  attachmentName String?                               // 附件原始文件名
+  attachmentType String?                               // 附件 MIME 类型
+  attachmentSize Int?                                  // 附件大小（字节）
+  startDate      DateTime                              // 受伤日期
+  endDate        DateTime?                             // 痊愈日期
+  status         String  @default("INJURED")       // 状态
+  recordedById   Int                                   // 录入人 ID（医研人员）
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   athlete     Athlete       @relation(fields: [athleteId], references: [id])
   recordedBy  User          @relation("InjuryRecordedBy", fields: [recordedById], references: [id])
   recoveryPlan RecoveryPlan?
+  history     InjuryHistory[]
 
+  @@index([athleteId, status])
+  @@index([status, startDate])
   @@map("injuries")
+}
+
+model InjuryHistory {
+  id        Int      @id @default(autoincrement())
+  injuryId  Int                                   // 关联伤病 ID
+  changedBy Int                                   // 操作人 ID
+  changes   String                                // 变更内容（JSON：{ 字段: { before, after } }）
+  note      String?                               // 变更备注
+  createdAt DateTime @default(now())
+
+  injury   Injury @relation(fields: [injuryId], references: [id], onDelete: Cascade)
+  operator User   @relation("InjuryHistoryOperator", fields: [changedBy], references: [id])
+
+  @@index([injuryId, createdAt])
+  @@map("injury_histories")
 }
 
 model RecoveryPlan {

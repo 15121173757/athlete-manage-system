@@ -387,8 +387,134 @@ export async function listExercises() {
 }
 
 // ============================================================
-// 已完成训练计划记录（按 运动员 × 计划 分组视图）
+// 当日训练计划（今日计划）：统计当日有训练计划的运动员并聚合其计划明细
 // ============================================================
+
+/** 计划中的单个练习项（当日） */
+export interface TodayPlanItem {
+  exerciseId: number;
+  exerciseName: string;
+  category: string;
+  unit: string;
+  sets: number;
+  reps: number;
+  load: number | null;
+  restSeconds: number | null;
+  duration: number | null;
+  intensity: string | null;
+  notes: string | null;
+}
+
+/** 运动员当日所属的一个训练计划 */
+export interface TodayPlanUnit {
+  planId: number;
+  goal: string | null;
+  status: string;
+  /** 预计总时长（分钟，当日计划项 duration 之和） */
+  totalDuration: number;
+  totalSets: number;
+  totalReps: number;
+  items: TodayPlanItem[];
+}
+
+/** 当日拥有训练计划的运动员 */
+export interface TodayPlanAthlete {
+  athleteId: number;
+  name: string;
+  sport: string;
+  position: string | null;
+  status: string;
+  plans: TodayPlanUnit[];
+}
+
+export interface TodayPlansResult {
+  date: string;
+  dayOfWeek: number;
+  /** 当日拥有训练计划的运动员总数（去重） */
+  total: number;
+  athletes: TodayPlanAthlete[];
+}
+
+/**
+ * 查询当日拥有训练计划的运动员列表
+ * @param dayOfWeek 星期几（1-7，1=周一）
+ * 判定规则：关联到状态为 PUBLISHED（进行中）的训练计划，且该计划
+ * 在指定星期存在训练安排（TrainingPlanItem.dayOfWeek 匹配）
+ */
+export async function listTodayPlanAthletes(dayOfWeek: number): Promise<TodayPlansResult> {
+  const dateStr = new Date().toISOString().slice(0, 10);
+
+  const pairs = await prisma.trainingPlanAthlete.findMany({
+    where: {
+      plan: {
+        status: 'PUBLISHED',
+        items: { some: { dayOfWeek } },
+      },
+    },
+    include: {
+      athlete: { select: { id: true, name: true, sport: true, position: true, status: true } },
+      plan: {
+        include: {
+          items: {
+            where: { dayOfWeek },
+            include: { exercise: { select: { id: true, name: true, category: true, unit: true } } },
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          },
+        },
+      },
+    },
+  });
+
+  // 按运动员聚合（同一运动员可能关联多个计划）
+  const byAthlete = new Map<number, TodayPlanAthlete>();
+  for (const pair of pairs) {
+    const plan = pair.plan;
+    const items: TodayPlanItem[] = plan.items.map((it) => ({
+      exerciseId: it.exercise.id,
+      exerciseName: it.exercise.name,
+      category: it.exercise.category,
+      unit: it.exercise.unit,
+      sets: it.sets,
+      reps: it.reps,
+      load: it.load,
+      restSeconds: it.restSeconds,
+      duration: it.duration,
+      intensity: it.intensity,
+      notes: it.notes,
+    }));
+
+    const unit: TodayPlanUnit = {
+      planId: plan.id,
+      goal: plan.goal,
+      status: plan.status,
+      totalDuration: items.reduce((s, i) => s + (i.duration ?? 0), 0),
+      totalSets: items.reduce((s, i) => s + i.sets, 0),
+      totalReps: items.reduce((s, i) => s + i.reps, 0),
+      items,
+    };
+
+    const existing = byAthlete.get(pair.athleteId);
+    if (existing) {
+      existing.plans.push(unit);
+    } else {
+      byAthlete.set(pair.athleteId, {
+        athleteId: pair.athlete.id,
+        name: pair.athlete.name,
+        sport: pair.athlete.sport,
+        position: pair.athlete.position,
+        status: pair.athlete.status,
+        plans: [unit],
+      });
+    }
+  }
+
+  const athletes = Array.from(byAthlete.values());
+  // 计划按最新创建优先，运动员按姓名排序
+  athletes.forEach((a) => a.plans.sort((x, y) => y.planId - x.planId));
+  athletes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+
+  return { date: dateStr, dayOfWeek, total: athletes.length, athletes };
+}
 
 export interface CompletedPlanItemSummary {
   planItemId: number;

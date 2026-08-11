@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, Search, UserPlus, Download, Upload, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, UserPlus, Download, Upload, FileText, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Gender, AthleteStatus } from '@/types';
 import { useRef } from 'react';
@@ -137,7 +137,14 @@ export default function AthletesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-ams-text-primary">运动员档案</h2>
+        {/* 返回入口：回到数据看板首页（用户从看板卡片进入） */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 rounded-ams px-2 py-1 text-sm text-ams-text-secondary transition-colors hover:bg-ams-surface-hover hover:text-ams-text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          返回数据看板
+        </Link>
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} className="hidden" />
           <Button variant="outline" onClick={() => fileInputRef.current?.click()}>

@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Edit2, Trash2, Dumbbell, FileText } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Gender, AthleteStatus } from '@/types';
 import AthleteAvatar from '../components/AthleteAvatar';
+import AthleteTrainingPlans from '../components/AthleteTrainingPlans';
+import AthletePBs from '../components/AthletePBs';
 
 interface Athlete {
   id: number;
@@ -180,31 +182,10 @@ export default function AthleteDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="ams-card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Dumbbell className="h-5 w-5 text-ams-primary" />
-            <span className="text-ams-text-primary font-medium">训练计划</span>
-          </div>
-          <p className="text-2xl font-bold text-ams-text-primary">-</p>
-          <p className="text-xs text-ams-text-muted mt-1">查看该运动员的训练计划</p>
-        </div>
-        <div className="ams-card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Dumbbell className="h-5 w-5 text-ams-success" />
-            <span className="text-ams-text-primary font-medium">训练记录</span>
-          </div>
-          <p className="text-2xl font-bold text-ams-text-primary">-</p>
-          <p className="text-xs text-ams-text-muted mt-1">查看该运动员的训练历史</p>
-        </div>
-        <div className="ams-card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Dumbbell className="h-5 w-5 text-ams-warning" />
-            <span className="text-ams-text-primary font-medium">PB纪录</span>
-          </div>
-          <p className="text-2xl font-bold text-ams-text-primary">-</p>
-          <p className="text-xs text-ams-text-muted mt-1">查看该运动员的个人最好纪录</p>
-        </div>
+      {/* 训练计划 / PB 纪录 功能区块 */}
+      <div className="space-y-6">
+        <AthleteTrainingPlans athleteId={athlete.id} />
+        <AthletePBs athleteId={athlete.id} />
       </div>
     </div>
   );

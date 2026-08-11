@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Star, Edit2, Trash2, X, Filter, Heart, Dumbbell, Flame, Sparkles, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EquipmentPicker } from '@/lib/equipment-icons/EquipmentPicker';
 import { useRouter } from 'next/navigation';
 
 interface Exercise {
@@ -32,7 +33,6 @@ interface PaginationData {
 
 const categories = ['力量', '速度', '耐力', '柔韧', '技巧', '恢复'];
 const difficulties = ['初级', '中级', '高级'];
-const equipmentOptions = ['杠铃', '哑铃', '壶铃', '拉力器', '弹力带', '药球', '跳绳', '泡沫轴', '瑜伽垫', '单杠', '秒表', '敏捷梯'];
 
 const categoryIcons: Record<string, React.ReactNode> = {
   '力量': <Dumbbell className="h-4 w-4" />,
@@ -333,26 +333,6 @@ function ExerciseFormModal({
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  /** 解析当前已选器材列表（兼容中英文逗号） */
-  const equipmentList = form.equipment
-    .split(/[,，]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  /** 点击预设器材 chip：选中/取消 */
-  const toggleEquipment = (item: string) => {
-    setForm((prev) => {
-      const list = prev.equipment
-        .split(/[,，]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const next = list.includes(item)
-        ? list.filter((x) => x !== item)
-        : [...list, item];
-      return { ...prev, equipment: next.join(',') };
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { setError('练习名称不能为空'); return; }
@@ -475,31 +455,18 @@ function ExerciseFormModal({
 
           <div>
             <label className="block text-sm font-medium text-ams-text-primary mb-1.5">所用器材</label>
-            {/* 预设器材快捷选择 */}
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {equipmentOptions.map((opt) => {
-                const selected = equipmentList.includes(opt);
-                return (
-                  <button
-                    type="button"
-                    key={opt}
-                    onClick={() => toggleEquipment(opt)}
-                    className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-                      selected
-                        ? 'bg-ams-primary text-white'
-                        : 'bg-ams-background border border-ams-border text-ams-text-secondary hover:border-ams-primary/50 hover:text-ams-text-primary'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
+            {/* 简笔画快速选择（多选，点击图标选中/取消） */}
+            <div className="mb-2">
+              <EquipmentPicker
+                value={form.equipment}
+                onChange={(next) => setForm({ ...form, equipment: next })}
+              />
             </div>
             <input
               type="text"
               value={form.equipment}
               onChange={(e) => setForm({ ...form, equipment: e.target.value })}
-              placeholder="点击上方预设器材，或手动输入，多个器材用逗号分隔"
+              placeholder="点击上方器材简笔画快速选择，或手动输入（多个器材用逗号分隔）"
               className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
             />
           </div>

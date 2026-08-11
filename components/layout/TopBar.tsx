@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Search, Bell, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, Bell, LogOut, Menu, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/auth/auth-store';
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
   const { user, logout } = useAuthStore();
 
@@ -17,6 +17,17 @@ export function TopBar() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-ams-border bg-ams-surface px-6">
       <div className="flex items-center gap-4">
+        {onMenuClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            aria-label="打开导航菜单"
+            className="md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         <h1 className="text-lg font-semibold text-ams-text-primary">
           数据看板
         </h1>

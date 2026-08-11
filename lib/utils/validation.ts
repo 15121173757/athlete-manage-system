@@ -118,10 +118,17 @@ export const injuryCreateSchema = z.object({
   athleteId: z.number().int().positive('运动员ID必须为正整数'),
   injuryType: z.string().min(1, '伤病类型不能为空').max(100, '伤病类型不能超过100个字符'),
   description: z.string().min(1, '描述不能为空').max(1000, '描述不能超过1000个字符'),
+  bodyPart: z.string().min(1, '受伤部位不能为空').max(100, '受伤部位不能超过100个字符'),
+  cause: z.string().min(1, '受伤原因不能为空').max(500, '受伤原因不能超过500个字符'),
+  diagnosis: z.string().min(1, '诊断结果不能为空').max(500, '诊断结果不能超过500个字符'),
+  treatment: z.string().min(1, '治疗方案不能为空').max(1000, '治疗方案不能超过1000个字符'),
   startDate: z.string().datetime('受伤日期格式不正确'),
   endDate: z.string().datetime('痊愈日期格式不正确').optional().nullable(),
   status: z.enum(['INJURED', 'RECOVERING', 'RETURNED']).optional(),
 });
+
+// 更新伤病：所有字段可选（至少提交一项），单字段沿用创建校验规则
+export const injuryUpdateSchema = injuryCreateSchema.partial();
 
 // ============================================================
 // 康复计划

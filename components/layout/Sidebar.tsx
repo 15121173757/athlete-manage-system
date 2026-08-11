@@ -14,6 +14,7 @@ import {
   Trophy,
   Activity,
   HeartPulse,
+  FlaskConical,
   Brain,
   Settings,
   GripVertical,
@@ -45,6 +46,7 @@ const defaultNavGroups: NavGroup[] = [
       { label: '体能测试', href: '/fitness', icon: Activity },
       { label: 'PB记录', href: '/pb', icon: Trophy },
       { label: '伤病与负荷监控', href: '/health', icon: HeartPulse },
+      { label: '运动科学工具箱', href: '/tools', icon: FlaskConical },
     ],
   },
   {
@@ -121,7 +123,7 @@ function extractOrder(groups: NavGroup[]): Record<string, string[]> {
 // 侧边栏组件
 // ============================================================
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const [groups, setGroups] = useState<NavGroup[]>(defaultNavGroups);
@@ -263,7 +265,13 @@ export function Sidebar() {
                     )}
                     <Link
                       href={item.href}
-                      onClick={(e) => isEditMode && e.preventDefault()}
+                      onClick={(e) => {
+                        if (isEditMode) {
+                          e.preventDefault();
+                          return;
+                        }
+                        onNavigate?.();
+                      }}
                       className={cn(
                         'flex items-center gap-3 rounded-ams px-3 py-2 text-sm transition-colors',
                         isActive

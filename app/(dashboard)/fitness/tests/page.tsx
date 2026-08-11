@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EquipmentPicker } from '@/lib/equipment-icons/EquipmentPicker';
 import { useRouter } from 'next/navigation';
 
 interface FitnessTest {
@@ -50,12 +51,20 @@ const directionOptions = [
 ];
 
 const categoryIcons: Record<string, React.ReactNode> = {
+  // 预设分类
   '力量测试': <Dumbbell className="h-4 w-4" />,
   '爆发力测试': <Zap className="h-4 w-4" />,
   '速度敏捷测试': <Wind className="h-4 w-4" />,
   '供能系统测试': <Flame className="h-4 w-4" />,
   '柔韧测试': <Sparkles className="h-4 w-4" />,
   '其他': <Heart className="h-4 w-4" />,
+  // 兼容历史短分类（数据未归一化时兜底，避免图标退化）
+  '力量': <Dumbbell className="h-4 w-4" />,
+  '爆发力': <Zap className="h-4 w-4" />,
+  '速度': <Wind className="h-4 w-4" />,
+  '耐力': <Flame className="h-4 w-4" />,
+  '柔韧': <Sparkles className="h-4 w-4" />,
+  '身体成分': <Heart className="h-4 w-4" />,
 };
 
 const directionLabels: Record<string, string> = {
@@ -370,7 +379,6 @@ interface FormState {
   category: string;
   unit: string;
   direction: string;
-  warningThreshold: string;
   description: string;
   purpose: string;
   applicableGroup: string;
@@ -396,7 +404,6 @@ function FitnessTestFormModal({
     category: test?.category || '力量测试',
     unit: test?.unit || '',
     direction: test?.direction || 'HIGHER_BETTER',
-    warningThreshold: test?.warningThreshold != null ? String(test.warningThreshold) : '',
     description: test?.description || '',
     purpose: test?.purpose || '',
     applicableGroup: test?.applicableGroup || '',
@@ -423,9 +430,6 @@ function FitnessTestFormModal({
       direction: form.direction,
     };
 
-    const wt = trim(form.warningThreshold);
-    payload.warningThreshold = wt === '' ? null : Number(wt);
-
     const optionalStrings: (keyof FormState)[] = [
       'description', 'purpose', 'applicableGroup', 'equipment',
       'demoVideoUrl', 'diagramUrl', 'scoringStandard', 'referenceRange', 'precautions',
@@ -443,11 +447,6 @@ function FitnessTestFormModal({
     if (!form.name.trim()) { setError('测试名称不能为空'); return; }
     if (!form.category.trim()) { setError('分类不能为空'); return; }
     if (!form.unit.trim()) { setError('计量单位不能为空'); return; }
-
-    if (form.warningThreshold.trim() !== '') {
-      const wt = Number(form.warningThreshold.trim());
-      if (Number.isNaN(wt)) { setError('预警阈值必须为数字'); return; }
-    }
 
     if (form.demoVideoUrl.trim() !== '') {
       try { new URL(form.demoVideoUrl.trim()); }
@@ -543,16 +542,6 @@ function FitnessTestFormModal({
                   ))}
                 </select>
               </FormField>
-              <FormField label="预警阈值">
-                <input
-                  type="number"
-                  step="any"
-                  value={form.warningThreshold}
-                  onChange={(e) => set('warningThreshold', e.target.value)}
-                  placeholder="低于此值触发预警"
-                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
-                />
-              </FormField>
             </div>
           </FormSection>
 
@@ -595,11 +584,17 @@ function FitnessTestFormModal({
           <FormSection title="资源信息">
             <div className="grid grid-cols-1 gap-4">
               <FormField label="所需器材">
+                <div className="mb-2">
+                  <EquipmentPicker
+                    value={form.equipment}
+                    onChange={(next) => set('equipment', next)}
+                  />
+                </div>
                 <input
                   type="text"
                   value={form.equipment}
                   onChange={(e) => set('equipment', e.target.value)}
-                  placeholder="多个器材用逗号分隔，如：杠铃, 哑铃"
+                  placeholder="点击上方器材简笔画快速选择，或手动输入（多个器材用逗号分隔）"
                   className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
                 />
               </FormField>

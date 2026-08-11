@@ -2,25 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, ClipboardList, Dumbbell, Activity, ArrowRight } from 'lucide-react';
+import { Users, ClipboardList, Dumbbell, CalendarDays, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/lib/auth/auth-store';
 import { QuickActionsCard } from './components/QuickActionsCard';
 import { AcwrRiskCard } from './components/AcwrRiskCard';
 
 interface Stats {
   totalAthletes: number;
-  activeAthletes: number;
+  todayPlanAthletes: number;
   publishedPlans: number;
   pendingRecords: number;
   injuredAthletes: number;
 }
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
   const [stats, setStats] = useState<Stats>({
     totalAthletes: 0,
-    activeAthletes: 0,
+    todayPlanAthletes: 0,
     publishedPlans: 0,
     pendingRecords: 0,
     injuredAthletes: 0,
@@ -30,12 +28,14 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [athletesRes, plansRes] = await Promise.all([
+        const [athletesRes, plansRes, todayRes] = await Promise.all([
           fetch('/api/athletes?pageSize=1'),
           fetch('/api/training/plans?pageSize=1&status=PUBLISHED'),
+          fetch('/api/training/plans/today'),
         ]);
         const athletesJson = await athletesRes.json();
         const plansJson = await plansRes.json();
+        const todayJson = await todayRes.json();
 
         if (athletesJson.success) {
           setStats((prev) => ({
@@ -47,6 +47,12 @@ export default function DashboardPage() {
           setStats((prev) => ({
             ...prev,
             publishedPlans: plansJson.data.total,
+          }));
+        }
+        if (todayJson.success) {
+          setStats((prev) => ({
+            ...prev,
+            todayPlanAthletes: todayJson.data.total,
           }));
         }
       } catch { /* empty */ }
@@ -66,13 +72,13 @@ export default function DashboardPage() {
       link: '/athletes',
     },
     {
-      label: '活跃运动员',
-      value: stats.activeAthletes || '-',
-      desc: '当前在队人数',
-      icon: Activity,
+      label: '今日计划',
+      value: stats.todayPlanAthletes || '-',
+      desc: '今日有训练计划的用户',
+      icon: CalendarDays,
       color: 'text-ams-success',
       bgColor: 'bg-ams-success/10',
-      link: '/athletes',
+      link: '/training/today-plans',
     },
     {
       label: '已发布计划',
@@ -96,16 +102,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="ams-card p-6">
-        <h2 className="text-2xl font-bold text-ams-text-primary mb-2">
-          欢迎{user ? `，${user.name}` : ''}
-        </h2>
-        <p className="text-ams-text-secondary">
-          {user?.role === 'COACH' ? '教练员' : user?.role === 'MEDICAL' ? '医研人员' : user?.role === 'ADMIN' ? '管理员' : ''}
-          ，今天是管理团队的一天。以下是当前系统概览。
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;

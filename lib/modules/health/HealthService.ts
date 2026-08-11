@@ -12,6 +12,8 @@
 import { prisma } from '@/lib/db/prisma';
 import { BusinessError } from '@/lib/errors/ErrorPresenter';
 import { logAction } from '@/lib/modules/audit/AuditService';
+import path from 'node:path';
+import fs from 'node:fs';
 
 // ============================================================
 // 类型定义
@@ -20,9 +22,15 @@ export interface CreateInjuryInput {
   athleteId: number;
   injuryType: string;
   description: string;
+  bodyPart: string;
+  cause: string;
+  diagnosis: string;
+  treatment: string;
   startDate: string;
   endDate?: string | null;
   status?: string;
+  /** 更新时的变更备注（创建时忽略） */
+  note?: string;
 }
 
 export interface CreateRecoveryPlanInput {
@@ -45,6 +53,15 @@ export interface CreateHealthMetricInput {
 // 伤病记录
 // ============================================================
 
+/** 字符串字段去除首尾空白，空串归一化为 null */
+function normalizeField(value: unknown): unknown {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed === '' ? null : trimmed;
+  }
+  return value;
+}
+
 export async function createInjury(data: CreateInjuryInput, operatorId: number) {
   const athlete = await prisma.athlete.findUnique({ where: { id: data.athleteId } });
   if (!athlete) throw new BusinessError('NOT_FOUND', '运动员不存在');
@@ -54,6 +71,10 @@ export async function createInjury(data: CreateInjuryInput, operatorId: number) 
       athleteId: data.athleteId,
       injuryType: data.injuryType,
       description: data.description,
+      bodyPart: data.bodyPart,
+      cause: data.cause,
+      diagnosis: data.diagnosis,
+      treatment: data.treatment,
       startDate: new Date(data.startDate),
       endDate: data.endDate ? new Date(data.endDate) : null,
       status: (data.status || 'INJURED') as 'INJURED' | 'RECOVERING' | 'RETURNED',
@@ -83,6 +104,21 @@ export async function createInjury(data: CreateInjuryInput, operatorId: number) 
   return injury;
 }
 
+export async function getInjuryById(id: number) {
+  return prisma.injury.findUnique({
+    where: { id },
+    include: {
+      athlete: { select: { id: true, name: true, sport: true, position: true } },
+      recoveryPlan: true,
+      history: {
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { operator: { select: { id: true, name: true, username: true } } },
+      },
+    },
+  });
+}
+
 export async function updateInjury(
   id: number,
   data: Partial<CreateInjuryInput>,
@@ -92,12 +128,58 @@ export async function updateInjury(
   if (!existing) throw new BusinessError('NOT_FOUND', '伤病记录不存在');
 
   const updateData: Record<string, unknown> = {};
-  if (data.injuryType) updateData.injuryType = data.injuryType;
-  if (data.description) updateData.description = data.description;
-  if (data.startDate) updateData.startDate = new Date(data.startDate);
-  if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
-  if (data.status) {
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
+
+  // 字符串字段
+  const stringFields = [
+    'injuryType',
+    'description',
+    'bodyPart',
+    'cause',
+    'diagnosis',
+    'treatment',
+  ] as const;
+  for (const field of stringFields) {
+    if (data[field] !== undefined) {
+      const value = normalizeField(data[field]);
+      updateData[field] = value;
+      if (existing[field] !== value) {
+        changes[field] = { before: existing[field], after: value };
+      }
+    }
+  }
+
+  // 运动员
+  if (data.athleteId !== undefined && data.athleteId !== existing.athleteId) {
+    const athlete = await prisma.athlete.findUnique({ where: { id: data.athleteId } });
+    if (!athlete) throw new BusinessError('NOT_FOUND', '运动员不存在');
+    updateData.athleteId = data.athleteId;
+    changes.athleteId = { before: existing.athleteId, after: data.athleteId };
+  }
+
+  // 受伤日期（按日历日比对，避免 UTC 时区偏移导致的同日噪音变更）
+  if (data.startDate !== undefined) {
+    const next = new Date(data.startDate).toISOString();
+    updateData.startDate = new Date(next);
+    if (existing.startDate.toISOString().slice(0, 10) !== next.slice(0, 10)) {
+      changes.startDate = { before: existing.startDate.toISOString(), after: next };
+    }
+  }
+
+  // 痊愈日期（按日历日比对）
+  if (data.endDate !== undefined) {
+    const after = data.endDate ? new Date(data.endDate).toISOString() : null;
+    const before = existing.endDate ? existing.endDate.toISOString() : null;
+    updateData.endDate = data.endDate ? new Date(after!) : null;
+    if ((before === null) !== (after === null) || (before !== null && before.slice(0, 10) !== after!.slice(0, 10))) {
+      changes.endDate = { before, after };
+    }
+  }
+
+  // 状态
+  if (data.status !== undefined && data.status !== existing.status) {
     updateData.status = data.status;
+    changes.status = { before: existing.status, after: data.status };
     if (data.status === 'RETURNED') {
       await prisma.athlete.update({
         where: { id: existing.athleteId },
@@ -106,10 +188,28 @@ export async function updateInjury(
     }
   }
 
+  // 无实际变更：直接返回当前记录
+  if (Object.keys(changes).length === 0) {
+    return prisma.injury.findUnique({
+      where: { id },
+      include: { athlete: { select: { id: true, name: true } }, recoveryPlan: true },
+    });
+  }
+
   const injury = await prisma.injury.update({
     where: { id },
     data: updateData,
     include: { athlete: { select: { id: true, name: true } }, recoveryPlan: true },
+  });
+
+  // 记录修改历史（数据变更追踪）
+  await prisma.injuryHistory.create({
+    data: {
+      injuryId: id,
+      changedBy: operatorId,
+      changes: JSON.stringify(changes),
+      note: data.note || null,
+    },
   });
 
   await logAction({
@@ -117,9 +217,67 @@ export async function updateInjury(
     action: 'UPDATE_INJURY',
     targetType: 'Injury',
     targetId: id,
+    detail: { fields: Object.keys(changes) },
   });
 
   return injury;
+}
+
+/** 记录伤病附件元信息（上传时替换旧附件） */
+export async function setInjuryAttachment(
+  injuryId: number,
+  meta: { path: string; name: string; type: string; size: number }
+) {
+  const existing = await prisma.injury.findUnique({ where: { id: injuryId } });
+  if (!existing) throw new BusinessError('NOT_FOUND', '伤病记录不存在');
+
+  return prisma.injury.update({
+    where: { id: injuryId },
+    data: {
+      attachmentPath: meta.path,
+      attachmentName: meta.name,
+      attachmentType: meta.type,
+      attachmentSize: meta.size,
+    },
+  });
+}
+
+/** 删除伤病记录（级联删除修改历史，清理附件文件） */
+export async function deleteInjury(id: number, operatorId: number) {
+  const existing = await prisma.injury.findUnique({ where: { id } });
+  if (!existing) throw new BusinessError('NOT_FOUND', '伤病记录不存在');
+
+  // 清理附件文件
+  if (existing.attachmentPath) {
+    try {
+      const absolute = path.join(process.cwd(), 'public', existing.attachmentPath);
+      if (fs.existsSync(absolute)) fs.unlinkSync(absolute);
+    } catch {
+      /* 忽略文件清理失败 */
+    }
+  }
+
+  await prisma.injury.delete({ where: { id } }); // InjuryHistory 级联删除
+
+  // 若该运动员无其他未痊愈伤病，恢复在队状态
+  const remaining = await prisma.injury.count({
+    where: { athleteId: existing.athleteId, status: { in: ['INJURED', 'RECOVERING'] } },
+  });
+  if (remaining === 0) {
+    await prisma.athlete.update({
+      where: { id: existing.athleteId },
+      data: { status: 'ACTIVE' },
+    });
+  }
+
+  await logAction({
+    userId: operatorId,
+    action: 'DELETE_INJURY',
+    targetType: 'Injury',
+    targetId: id,
+  });
+
+  return { success: true };
 }
 
 export async function listInjuries(params: {
