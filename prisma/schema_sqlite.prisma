@@ -58,7 +58,6 @@ model Athlete {
   injuries          Injury[]
   healthMetrics     HealthMetric[]
   loadRecords       LoadRecord[]
-  riskReports       InjuryRiskReport[]
   fitnessPlanParticipants FitnessTestPlanParticipant[]
 
   @@map("athletes")
@@ -327,26 +326,6 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([targetType, createdAt])
   @@map("audit_logs")
-}
-
-model InjuryRiskReport {
-  id                 Int      @id @default(autoincrement())
-  athleteId          Int
-  riskLevel          String
-  riskScore          Int
-  riskFactors        String
-  warningSignals     String
-  preventionAdvice   String
-  trainingAdjustment String
-  rawContent         String
-  provider           String
-  weeksRange         Int
-  createdAt          DateTime @default(now())
-
-  athlete Athlete @relation(fields: [athleteId], references: [id])
-
-  @@index([athleteId, createdAt])
-  @@map("injury_risk_reports")
 }
 
 model FitnessTestPlan {

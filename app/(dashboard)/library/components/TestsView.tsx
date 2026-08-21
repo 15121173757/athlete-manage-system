@@ -424,6 +424,11 @@ function isValidNumber(value: string): boolean {
   return value.trim() !== '' && Number.isFinite(Number(value));
 }
 
+/** 标准组是否完全空白（三个字段均为空）：空白组不参与保存，也不触发必填校验 */
+function isBlankStandard(item: StandardDraft): boolean {
+  return item.normName.trim() === '' && item.mean.trim() === '' && item.stdDev.trim() === '';
+}
+
 /** 是否最多保留两位小数 */
 function hasMaxTwoDecimals(value: string): boolean {
   const n = Number(value);
@@ -548,11 +553,17 @@ function FitnessTestFormModal({
         form.resultType === 'GRADE'
           ? gradeDrafts.map((g) => g.trim()).filter((g) => g !== '')
           : null,
-      standards: standardDrafts.map((d) => ({
-        normName: d.normName.trim(),
-        mean: Number(d.mean),
-        stdDev: Number(d.stdDev),
-      })),
+      // 测试标准（常模）：过滤完全空白的组；全部为空时提交 null（无常模）
+      standards: (() => {
+        const filled = standardDrafts
+          .filter((d) => !isBlankStandard(d))
+          .map((d) => ({
+            normName: d.normName.trim(),
+            mean: Number(d.mean),
+            stdDev: Number(d.stdDev),
+          }));
+        return filled.length > 0 ? filled : null;
+      })(),
     };
 
     const optionalStrings: (keyof FormState)[] = [
@@ -590,9 +601,11 @@ function FitnessTestFormModal({
       if (options.some((o) => o.length > 20)) { setError('等级选项不能超过20个字符'); return; }
     }
 
-    // 测试标准校验：常模名称、平均值、标准差均为必填
+    // 测试标准校验：仅校验已填写部分字段的标准组（完全空白的组将被过滤，不参与保存）
     const allErrors = standardDrafts.map(validateStandardDraft);
-    const hasStandardErrors = allErrors.some((e) => e.normName || e.mean || e.stdDev);
+    const hasStandardErrors = allErrors.some(
+      (e, i) => (e.normName || e.mean || e.stdDev) && !isBlankStandard(standardDrafts[i])
+    );
     if (hasStandardErrors) {
       setStandardErrors(allErrors);
       setError('请完善测试标准：常模名称、平均值、标准差均为必填，标准差必须大于0');
@@ -826,13 +839,13 @@ function FitnessTestFormModal({
                 <div className="flex items-center gap-3 pb-2">
                   <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="text-center text-sm font-medium text-ams-text-primary">
-                      常模名称<span className="text-ams-danger"> *</span>
+                      常模名称
                     </div>
                     <div className="text-center text-sm font-medium text-ams-text-primary">
-                      平均值<span className="text-ams-danger"> *</span>
+                      平均值
                     </div>
                     <div className="text-center text-sm font-medium text-ams-text-primary">
-                      标准差<span className="text-ams-danger"> *</span>
+                      标准差
                     </div>
                   </div>
                   {/* 与右侧删除图标占位对齐 */}

@@ -13,7 +13,6 @@ import {
   Trophy,
   HeartPulse,
   FlaskConical,
-  Brain,
   Settings,
   GripVertical,
   Check,
@@ -34,9 +33,9 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// 版本化存储键：导航结构发生重构（如动作库并入核心业务、练习库/测试库改为 Tab）时递增，
+// 版本化存储键：导航结构发生重构（如动作库并入核心业务、练习库/测试库改为 Tab、移除智能分析模块）时递增，
 // 避免旧排序数据（含已失效的 href）错误地将新增项追加到末尾。
-const STORAGE_KEY = 'ams-sidebar-nav-order-v3';
+const STORAGE_KEY = 'ams-sidebar-nav-order-v4';
 
 const defaultNavGroups: NavGroup[] = [
   {
@@ -50,14 +49,6 @@ const defaultNavGroups: NavGroup[] = [
       { label: 'PB追踪', href: '/pb', icon: Trophy },
       { label: '伤病与负荷监控', href: '/health', icon: HeartPulse },
       { label: '运动科学工具箱', href: '/tools', icon: FlaskConical },
-    ],
-  },
-  {
-    title: '智能分析',
-    items: [
-      { label: '训练分析', href: '/analysis/training', icon: Brain },
-      { label: '伤病风险', href: '/analysis/injury-risk', icon: Brain },
-      { label: '智能查询', href: '/analysis/query', icon: Brain },
     ],
   },
   {

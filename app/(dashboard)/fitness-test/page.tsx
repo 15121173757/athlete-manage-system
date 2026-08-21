@@ -122,7 +122,7 @@ export default function FitnessTestHomePage() {
       </div>
 
       {/* 快捷入口 */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Link href="/fitness-test/plans" className="ams-card group p-4 transition-all hover:border-ams-primary hover:bg-ams-primary/[0.06]">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ams bg-ams-primary/20 text-ams-primary">
@@ -153,17 +153,6 @@ export default function FitnessTestHomePage() {
             <div>
               <div className="text-sm font-medium text-ams-text-primary group-hover:text-ams-primary">运动能力分析</div>
               <div className="text-xs text-ams-text-muted">测试成绩与常模对比，生成 TSA 综合评分</div>
-            </div>
-          </div>
-        </Link>
-        <Link href="/library?tab=tests" className="ams-card group p-4 transition-all hover:border-ams-primary hover:bg-ams-primary/[0.06]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ams bg-ams-primary/20 text-ams-primary">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-ams-text-primary group-hover:text-ams-primary">测试库</div>
-              <div className="text-xs text-ams-text-muted">管理测试项目与测试标准</div>
             </div>
           </div>
         </Link>

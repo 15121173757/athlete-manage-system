@@ -78,7 +78,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ams-text-muted" />
           <input
             type="text"
-            placeholder="搜索运动员、训练记录或输入自然语言查询..."
+            placeholder="搜索运动员、训练记录..."
             className="w-full rounded-ams bg-ams-background border border-ams-border py-2 pl-10 pr-4 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
           />
         </div>

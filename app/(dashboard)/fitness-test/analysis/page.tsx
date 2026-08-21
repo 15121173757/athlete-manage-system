@@ -63,9 +63,109 @@ const directionLabels: Record<string, string> = {
   LOWER_BETTER: '越低越好',
 };
 
+// 雷达图维度标签精简：去掉「测试」后缀，统一为素质名称（如「力量测试」→「力量」）
+function shortCategoryName(category: string): string {
+  return category.replace(/测试$/, '');
+}
+
 // 多运动员对比的差异化颜色（与 Legend/TSA 卡/明细共用同一索引）
-const ATHLETE_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'];
+// 亮橙 → 亮绿 → 亮黄 → 亮紫 → 亮红
+const ATHLETE_COLORS = ['#F97316', '#22C55E', '#FACC15', '#A855F7', '#EF4444'];
 const MAX_ATHLETES = 5;
+
+// ==================== 雷达图风格主题（供用户选择） ====================
+type RadarThemeId = 'classic' | 'neon' | 'cyber' | 'aurora';
+
+interface RadarTheme {
+  id: RadarThemeId;
+  label: string;
+  desc: string;
+  /** 图表容器背景（深色主题用深色渐变/纯色，浅色主题为空） */
+  panelClass: string;
+  /** 基准网格线颜色 */
+  gridStroke: string;
+  /** 基准网格线不透明度 */
+  gridOpacity: number;
+  /** 基准网格线虚线（空字符串 = 实线） */
+  gridDash: string;
+  /** 刻度文字颜色 */
+  tickFill: string;
+  /** 能力多边形内部填充不透明度（0 = 无填充，仅轮廓） */
+  fillOpacity: number;
+  strokeWidth: number;
+  /** 是否启用霓虹发光（CSS drop-shadow） */
+  glow: boolean;
+  dotR: number;
+  dotStroke: string;
+  legendTextClass: string;
+}
+
+const RADAR_THEMES: RadarTheme[] = [
+  {
+    id: 'classic',
+    label: '经典浅色',
+    desc: '浅色底 + 浅灰虚线网格 + 纯色轮廓线',
+    panelClass: '',
+    gridStroke: '#EEEEEE',
+    gridOpacity: 1,
+    gridDash: '4 4',
+    tickFill: '#94A3B8',
+    fillOpacity: 0,
+    strokeWidth: 3,
+    glow: false,
+    dotR: 3,
+    dotStroke: '#FFFFFF',
+    legendTextClass: 'text-ams-text-secondary',
+  },
+  {
+    id: 'neon',
+    label: '霓虹暗夜',
+    desc: '深色渐变底 + 青色虚线网格 + 霓虹发光线条',
+    panelClass: 'bg-gradient-to-br from-slate-900 to-slate-800',
+    gridStroke: '#22D3EE',
+    gridOpacity: 0.25,
+    gridDash: '4 4',
+    tickFill: '#67E8F9',
+    fillOpacity: 0,
+    strokeWidth: 2.5,
+    glow: true,
+    dotR: 3.5,
+    dotStroke: '#FFFFFF',
+    legendTextClass: 'text-slate-300',
+  },
+  {
+    id: 'cyber',
+    label: '赛博网格',
+    desc: '深色底 + 青色实线网格 + 细亮线 + 发光顶点',
+    panelClass: 'bg-slate-950',
+    gridStroke: '#0EA5E9',
+    gridOpacity: 0.3,
+    gridDash: '',
+    tickFill: '#7DD3FC',
+    fillOpacity: 0.06,
+    strokeWidth: 2,
+    glow: true,
+    dotR: 4,
+    dotStroke: '#FFFFFF',
+    legendTextClass: 'text-slate-300',
+  },
+  {
+    id: 'aurora',
+    label: '极光渐变',
+    desc: '浅色底 + 极浅网格 + 柔和填充 + 微光描边',
+    panelClass: '',
+    gridStroke: '#EEEEEE',
+    gridOpacity: 1,
+    gridDash: '4 4',
+    tickFill: '#94A3B8',
+    fillOpacity: 0.12,
+    strokeWidth: 2.5,
+    glow: true,
+    dotR: 3,
+    dotStroke: '#FFFFFF',
+    legendTextClass: 'text-ams-text-secondary',
+  },
+];
 
 const inputClass =
   'w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary appearance-none';
@@ -90,6 +190,10 @@ export default function AbilityAnalysisPage() {
   const [excludedTests, setExcludedTests] = useState<Set<number>>(new Set());
   // 每个测试选定的常模下标（所有运动员共用同一常模口径，保证对比公平）
   const [normByTest, setNormByTest] = useState<Record<number, number>>({});
+
+  // 雷达图风格主题（默认经典浅色）
+  const [radarThemeId, setRadarThemeId] = useState<RadarThemeId>('classic');
+  const radarTheme = RADAR_THEMES.find((t) => t.id === radarThemeId) ?? RADAR_THEMES[0];
 
   // ==================== 队伍/运动员 ====================
   useEffect(() => {
@@ -248,6 +352,12 @@ export default function AbilityAnalysisPage() {
 
   const publicCategories = useMemo(() => publicGroups.map((g) => g.category), [publicGroups]);
 
+  // 雷达图实际展示的维度：按公共维度顺序，仅保留用户已勾选的素质维度
+  const radarCategories = useMemo(
+    () => publicCategories.filter((c) => selectedCategories.includes(c)),
+    [publicCategories, selectedCategories]
+  );
+
   // 默认全选公共类别
   useEffect(() => {
     if (publicCategories.length > 0 && selectedCategories.length === 0) {
@@ -308,13 +418,13 @@ export default function AbilityAnalysisPage() {
         tsaPercentile: out.percentile,
         detail: out.dimensions,
         skipped,
-        radar: publicCategories.map((c) => ({
+        radar: radarCategories.map((c) => ({
           category: c,
           score: byCat.has(c) ? (byCat.get(c) as number) : null,
         })),
       };
     });
-  }, [athleteIds, athletes, publicCategories, buildItemsFor]);
+  }, [athleteIds, athletes, radarCategories, buildItemsFor]);
 
   const skippedSummary = useMemo(() => {
     const map = new Map<string, { name: string; reason: string }[]>();
@@ -326,14 +436,14 @@ export default function AbilityAnalysisPage() {
 
   // 雷达图数据：行 = 维度，列 = 各运动员
   const radarData = useMemo(() => {
-    return publicCategories.map((c) => {
+    return radarCategories.map((c) => {
       const row: Record<string, string | number | null> = { category: c };
       for (const s of series) {
         row[s.name] = s.radar.find((r) => r.category === c)?.score ?? null;
       }
       return row;
     });
-  }, [publicCategories, series]);
+  }, [radarCategories, series]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -703,17 +813,46 @@ export default function AbilityAnalysisPage() {
 
             {/* 雷达图 */}
             <div className="ams-card p-4 lg:col-span-2">
-              <h2 className="mb-2 text-sm font-semibold text-ams-text-primary">素质维度雷达图（多人对比）</h2>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-ams-text-primary">素质维度雷达图（多人对比）</h2>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-ams-text-muted">风格</span>
+                  {RADAR_THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setRadarThemeId(t.id)}
+                      title={t.desc}
+                      className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                        radarThemeId === t.id
+                          ? 'border-ams-primary bg-ams-primary/10 text-ams-primary'
+                          : 'border-ams-border text-ams-text-secondary hover:border-ams-primary/50 hover:text-ams-text-primary'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {radarData.length >= 3 ? (
-                <div className="h-80 w-full">
+                <div className={`h-[440px] w-full rounded-xl ${radarTheme.panelClass}`}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="68%">
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="category" tick={{ fill: '#8CA3B8', fontSize: 12 }} />
+                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
+                      <PolarGrid
+                        stroke={radarTheme.gridStroke}
+                        strokeOpacity={radarTheme.gridOpacity}
+                        strokeDasharray={radarTheme.gridDash || undefined}
+                      />
+                      <PolarAngleAxis
+                        dataKey="category"
+                        tick={{ fill: radarTheme.tickFill, fontSize: 13 }}
+                        tickSize={20}
+                        tickFormatter={(value) => shortCategoryName(String(value))}
+                      />
                       <PolarRadiusAxis
                         angle={90}
                         domain={[0, 100]}
-                        tick={{ fill: '#8CA3B8', fontSize: 10 }}
+                        tick={{ fill: radarTheme.tickFill, fontSize: 10 }}
                         tickCount={6}
                       />
                       {series.map((s) => (
@@ -722,16 +861,28 @@ export default function AbilityAnalysisPage() {
                           name={s.name}
                           dataKey={s.name}
                           stroke={s.color}
-                          fill={s.color}
-                          fillOpacity={0.16}
-                          strokeWidth={2}
-                          dot={{ r: 3, fill: s.color, strokeWidth: 1 }}
+                          fill={radarTheme.fillOpacity > 0 ? s.color : 'none'}
+                          fillOpacity={radarTheme.fillOpacity}
+                          strokeWidth={radarTheme.strokeWidth}
+                          style={
+                            radarTheme.glow
+                              ? { filter: `drop-shadow(0 0 5px ${s.color}) drop-shadow(0 0 12px ${s.color}66)` }
+                              : undefined
+                          }
+                          dot={{
+                            r: radarTheme.dotR,
+                            fill: s.color,
+                            stroke: radarTheme.dotStroke,
+                            strokeWidth: 1,
+                          }}
                           isAnimationActive={false}
                         />
                       ))}
                       <Legend
                         content={({ payload }) => (
-                          <ul className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 text-xs text-ams-text-secondary">
+                          <ul
+                            className={`mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 text-xs ${radarTheme.legendTextClass}`}
+                          >
                             {payload?.map((p, i) => (
                               <li key={String(p.value)} className="flex items-center gap-1.5">
                                 <span

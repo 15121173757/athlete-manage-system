@@ -83,7 +83,6 @@ model Athlete {
   healthMetrics     HealthMetric[]
   loadRecords       LoadRecord[]
   jumpAnalysisRecords JumpAnalysisRecord[]
-  riskReports       InjuryRiskReport[]
   fitnessPlanParticipants FitnessTestPlanParticipant[]
   fitnessTestResults      FitnessTestResult[]
 
@@ -409,30 +408,6 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([targetType, createdAt])
   @@map("audit_logs")
-}
-
-// ============================================================
-// 伤病风险分析报告（Phase 6 增强：历史趋势追踪）
-// ============================================================
-
-model InjuryRiskReport {
-  id                 Int      @id @default(autoincrement())
-  athleteId          Int                                  // 运动员 ID
-  riskLevel          String                               // 风险等级：低风险/中风险/高风险
-  riskScore          Int                                  // 风险评分（0-100）
-  riskFactors        String                               // 风险因素（LLM 输出）
-  warningSignals     String                               // 预警信号
-  preventionAdvice   String                               // 预防建议
-  trainingAdjustment String                               // 训练调整建议
-  rawContent         String                               // LLM 原始输出
-  provider           String                               // LLM 供应商
-  weeksRange         Int                                  // 分析周期（周）
-  createdAt          DateTime @default(now())
-
-  athlete Athlete @relation(fields: [athleteId], references: [id])
-
-  @@index([athleteId, createdAt])
-  @@map("injury_risk_reports")
 }
 
 // ============================================================

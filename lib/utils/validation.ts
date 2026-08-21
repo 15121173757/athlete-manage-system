@@ -169,10 +169,9 @@ export const testStandardSchema = z.object({
     .refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-9, '标准差最多保留两位小数'),
 });
 
-/** 测试标准（常模）数组 schema：至少保留一套，最多 50 套 */
+/** 测试标准（常模）数组 schema：允许为空（无常模），最多 50 套 */
 export const testStandardArraySchema = z
   .array(testStandardSchema)
-  .min(1, '请至少保留一套测试标准')
   .max(50, '测试标准不能超过50套');
 
 /** 测试项目基础 schema：创建/更新共用字段定义 */

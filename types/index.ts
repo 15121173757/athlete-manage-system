@@ -70,7 +70,6 @@ export const Permissions = {
   FITNESS_WRITE: 'FITNESS_WRITE',
   HEALTH_READ: 'HEALTH_READ',
   HEALTH_WRITE: 'HEALTH_WRITE',
-  LLM_USE: 'LLM_USE',
   USER_MANAGE: 'USER_MANAGE',
   AUDIT_READ: 'AUDIT_READ',
 } as const;
@@ -85,7 +84,6 @@ export const RolePermissions: Record<UserRole, PermissionKey[]> = {
     Permissions.TRAINING_WRITE,
     Permissions.FITNESS_READ,
     Permissions.FITNESS_WRITE,
-    Permissions.LLM_USE,
   ],
   [UserRole.MEDICAL]: [
     Permissions.ATHLETE_READ,
@@ -103,7 +101,6 @@ export const RolePermissions: Record<UserRole, PermissionKey[]> = {
     Permissions.FITNESS_WRITE,
     Permissions.HEALTH_READ,
     Permissions.HEALTH_WRITE,
-    Permissions.LLM_USE,
     Permissions.USER_MANAGE,
     Permissions.AUDIT_READ,
   ],

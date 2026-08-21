@@ -6,8 +6,6 @@ import {
   Users,
   ClipboardList,
   ClipboardCheck,
-  ShieldAlert,
-  Sparkles,
   Activity,
   Trophy,
   ArrowRight,
@@ -46,13 +44,11 @@ const COMMAND_CATALOG: QuickCommand[] = [
   { id: 'new-plan', label: '制定训练计划', desc: '创建训练计划', href: '/training/plans/new', icon: ClipboardList, color: 'text-ams-warning', bgColor: 'bg-ams-warning/20' },
   { id: 'add-record', label: '出勤管理', desc: '记录运动员出勤', href: '/training/records', icon: ClipboardCheck, color: 'text-ams-success', bgColor: 'bg-ams-success/20' },
   { id: 'add-load', label: '录入训练负荷', desc: 'RPE × 时长统计训练量', href: '/health?tab=load', icon: Activity, color: 'text-ams-primary', bgColor: 'bg-ams-primary/20' },
-  { id: 'injury-risk', label: '伤病风险分析', desc: 'AI 风险评估', href: '/analysis/injury-risk', icon: ShieldAlert, color: 'text-ams-danger', bgColor: 'bg-ams-danger/20' },
-  { id: 'ai-query', label: '智能查询助手', desc: '自然语言查询', href: '/analysis/query', icon: Sparkles, color: 'text-ams-primary', bgColor: 'bg-ams-primary/20' },
   { id: 'fitness', label: '动作库', desc: '练习库与测试库', href: '/library', icon: Activity, color: 'text-ams-warning', bgColor: 'bg-ams-warning/20' },
   { id: 'pb', label: 'PB追踪', desc: '个人最佳成绩', href: '/pb', icon: Trophy, color: 'text-ams-success', bgColor: 'bg-ams-success/20' },
 ];
 
-const DEFAULT_ACTIVE_IDS = ['new-athlete', 'new-plan', 'add-record', 'injury-risk', 'ai-query'];
+const DEFAULT_ACTIVE_IDS = ['new-athlete', 'new-plan', 'add-record', 'add-load', 'fitness'];
 
 // ============================================================
 // 本地存储工具函数
