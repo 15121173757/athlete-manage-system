@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, Search, UserPlus, Download, Upload, FileText, ArrowLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, UserPlus, Download, Upload, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Gender, AthleteStatus } from '@/types';
+import { Gender } from '@/types';
 import { useRef } from 'react';
 
 interface Athlete {
@@ -18,18 +18,11 @@ interface Athlete {
   sport: string;
   position: string | null;
   joinDate: string;
-  status: AthleteStatus;
 }
 
 const genderLabels: Record<string, string> = {
   MALE: '男',
   FEMALE: '女',
-};
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  ACTIVE: { label: '在队', color: 'text-ams-success' },
-  RECOVERING: { label: '休养', color: 'text-ams-warning' },
-  LEFT: { label: '离队', color: 'text-ams-text-muted' },
 };
 
 export default function AthletesPage() {
@@ -40,7 +33,8 @@ export default function AthletesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [sportFilter, setSportFilter] = useState('');
+  const [sportOptions, setSportOptions] = useState<{ sport: string; count: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: Array<{ row: number; name: string; reason: string }> } | null>(null);
@@ -82,7 +76,7 @@ export default function AthletesPage() {
       const params = new URLSearchParams({ page: String(page), pageSize: '10' });
       if (search) params.set('search', search);
       if (genderFilter) params.set('gender', genderFilter);
-      if (statusFilter) params.set('status', statusFilter);
+      if (sportFilter) params.set('sport', sportFilter);
 
       const res = await fetch(`/api/athletes?${params}`);
       const json = await res.json();
@@ -91,18 +85,38 @@ export default function AthletesPage() {
         setTotal(json.data.total);
         setTotalPages(json.data.totalPages);
       } else {
-        setError(json.error || '加载失败');
+        setError(json.error?.message || '加载失败');
       }
     } catch {
       setError('网络错误，请稍后重试');
     } finally {
       setIsLoading(false);
     }
-  }, [page, search, genderFilter, statusFilter]);
+  }, [page, search, genderFilter, sportFilter]);
 
   useEffect(() => {
     fetchAthletes();
   }, [fetchAthletes]);
+
+  // 加载全部运动员以派生「项目」筛选选项（含各项目人数）
+  useEffect(() => {
+    fetch('/api/athletes?pageSize=1000')
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j.success) return;
+        const counts = new Map<string, number>();
+        for (const a of (j.data.athletes || []) as Athlete[]) {
+          const s = a.sport || '未登记';
+          counts.set(s, (counts.get(s) ?? 0) + 1);
+        }
+        setSportOptions(
+          [...counts.entries()]
+            .map(([sport, count]) => ({ sport, count }))
+            .sort((x, y) => x.sport.localeCompare(y.sport, 'zh-CN'))
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   const handleDelete = async (id: number) => {
     if (!confirm('确定要删除该运动员吗？此操作不可撤销。')) return;
@@ -112,7 +126,7 @@ export default function AthletesPage() {
       if (json.success) {
         fetchAthletes();
       } else {
-        alert(json.error || '删除失败');
+        alert(json.error?.message || '删除失败');
       }
     } catch {
       alert('网络错误');
@@ -134,17 +148,20 @@ export default function AthletesPage() {
     fetchAthletes();
   };
 
+  /** 是否存在激活的筛选条件（项目 / 性别 / 搜索关键词） */
+  const isFilterActive = Boolean(sportFilter || genderFilter || search);
+
+  /** 清除全部筛选条件并回到第一页 */
+  const clearFilters = () => {
+    setSportFilter('');
+    setGenderFilter('');
+    setSearch('');
+    setPage(1);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        {/* 返回入口：回到数据看板首页（用户从看板卡片进入） */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 rounded-ams px-2 py-1 text-sm text-ams-text-secondary transition-colors hover:bg-ams-surface-hover hover:text-ams-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回数据看板
-        </Link>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} className="hidden" />
           <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
@@ -203,29 +220,78 @@ export default function AthletesPage() {
             />
           </div>
           <select
+            value={sportFilter}
+            onChange={(e) => { setSportFilter(e.target.value); setPage(1); }}
+            className="rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary focus:border-ams-primary focus:outline-none"
+          >
+            <option value="">全部项目</option>
+            {sportOptions.map((s) => (
+              <option key={s.sport} value={s.sport}>{s.sport}（{s.count}人）</option>
+            ))}
+          </select>
+          <select
             value={genderFilter}
             onChange={(e) => { setGenderFilter(e.target.value); setPage(1); }}
-            className="rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
+            className="rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary focus:border-ams-primary focus:outline-none"
           >
             <option value="">全部性别</option>
             <option value="MALE">男</option>
             <option value="FEMALE">女</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
-          >
-            <option value="">全部状态</option>
-            <option value="ACTIVE">在队</option>
-            <option value="RECOVERING">休养</option>
-            <option value="LEFT">离队</option>
           </select>
           <Button variant="outline" size="sm" onClick={handleSearch}>
             <Search className="h-4 w-4" />
             搜索
           </Button>
         </div>
+
+        {/* 筛选状态：展示当前筛选条件、匹配数量，并支持清除 */}
+        {isFilterActive && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-ams-border pt-3">
+            <span className="text-xs text-ams-text-muted">当前筛选：</span>
+            {sportFilter && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-ams-primary/10 px-2 py-0.5 text-xs font-medium text-ams-primary">
+                项目：{sportFilter}
+                <button
+                  onClick={() => { setSportFilter(''); setPage(1); }}
+                  className="hover:text-ams-primary/70"
+                  aria-label="清除项目筛选"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            {genderFilter && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-ams-primary/10 px-2 py-0.5 text-xs font-medium text-ams-primary">
+                性别：{genderLabels[genderFilter] || genderFilter}
+                <button
+                  onClick={() => { setGenderFilter(''); setPage(1); }}
+                  className="hover:text-ams-primary/70"
+                  aria-label="清除性别筛选"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            {search && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-ams-primary/10 px-2 py-0.5 text-xs font-medium text-ams-primary">
+                关键词：{search}
+                <button
+                  onClick={() => { setSearch(''); setPage(1); }}
+                  className="hover:text-ams-primary/70"
+                  aria-label="清除搜索关键词"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            <span className="ml-auto text-sm font-medium text-ams-text-primary">
+              共匹配 {total} 名运动员
+            </span>
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              清除全部筛选
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="ams-card overflow-hidden">
@@ -246,16 +312,15 @@ export default function AthletesPage() {
                     <th className="px-4 py-3 text-left ams-table-header">姓名</th>
                     <th className="px-4 py-3 text-left ams-table-header">性别</th>
                     <th className="px-4 py-3 text-left ams-table-header">出生日期</th>
-                    <th className="px-4 py-3 text-left ams-table-header">身高/体重</th>
+                    <th className="px-3 py-3 text-left ams-table-header whitespace-nowrap">身高</th>
+                    <th className="px-3 py-3 text-left ams-table-header whitespace-nowrap">体重</th>
                     <th className="px-4 py-3 text-left ams-table-header">项目</th>
                     <th className="px-4 py-3 text-left ams-table-header">入队日期</th>
-                    <th className="px-4 py-3 text-left ams-table-header">状态</th>
-                    <th className="px-4 py-3 text-right ams-table-header">操作</th>
+                    <th className="px-4 py-3 text-center ams-table-header">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {athletes.map((a) => {
-                    const s = statusLabels[a.status] || { label: a.status, color: 'text-ams-text-secondary' };
                     return (
                       <tr
                         key={a.id}
@@ -271,16 +336,18 @@ export default function AthletesPage() {
                         <td className="px-4 py-3 text-ams-text-secondary">
                           {new Date(a.birthDate).toLocaleDateString('zh-CN')}
                         </td>
-                        <td className="px-4 py-3 text-ams-text-secondary">
-                          {a.height ? `${a.height}cm` : '-'} / {a.weight ? `${a.weight}kg` : '-'}
+                        <td className="px-3 py-3 text-ams-text-secondary whitespace-nowrap">
+                          {a.height != null ? `${a.height} cm` : '-'}
+                        </td>
+                        <td className="px-3 py-3 text-ams-text-secondary whitespace-nowrap">
+                          {a.weight != null ? `${a.weight} kg` : '-'}
                         </td>
                         <td className="px-4 py-3 text-ams-text-secondary">{a.sport}</td>
                         <td className="px-4 py-3 text-ams-text-secondary">
                           {new Date(a.joinDate).toLocaleDateString('zh-CN')}
                         </td>
-                        <td className={`px-4 py-3 font-medium ${s.color}`}>{s.label}</td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex justify-end gap-1">
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex justify-center gap-1">
                             <Link href={`/athletes/${a.id}/edit`}>
                               <Button variant="ghost" size="icon">
                                 <Edit2 className="h-4 w-4" />

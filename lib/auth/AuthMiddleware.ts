@@ -9,8 +9,9 @@
 
 import { cookies } from 'next/headers';
 import { COOKIE_NAME, verifyToken } from '@/lib/auth/session';
-import { hasPermission, type PermissionKey, type UserInfo } from '@/types';
+import { hasPermission, UserRole, type PermissionKey, type UserInfo } from '@/types';
 import { ForbiddenError, ValidationError } from '@/lib/errors/ErrorPresenter';
+import { prisma } from '@/lib/db/prisma';
 
 // ============================================================
 // 获取当前会话用户（不检查权限）
@@ -26,12 +27,18 @@ export async function getSessionUser(): Promise<UserInfo | null> {
 
   try {
     const payload = await verifyToken(token);
+    // 以数据库为准重新校验用户：JWT 中记录的 userId 可能因账号被删除/停用而失效，
+    // 若盲信 JWT，会导致后续写操作触发误导性的外键约束错误（P2003）
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user || !user.isActive) {
+      return null;
+    }
     return {
-      userId: payload.userId,
-      username: payload.username,
-      name: payload.name,
-      role: payload.role,
-      isActive: payload.isActive,
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role as UserRole,
+      isActive: user.isActive,
     };
   } catch {
     return null;

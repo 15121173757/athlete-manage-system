@@ -8,6 +8,9 @@
 // ============================================================
 
 import { z } from 'zod';
+import { EXERCISE_CATEGORIES, TRACK_TYPE_CODES } from '@/lib/exercise/track-types';
+import { FITNESS_TEST_CATEGORIES } from '@/lib/fitness/test-types';
+import { ATTENDANCE_STATUS_CODES } from '@/lib/attendance/attendance-types';
 
 // ============================================================
 // 运动员
@@ -33,7 +36,6 @@ export const athleteCreateSchema = z.object({
   position: z.string().max(50, '位置不能超过50个字符').optional().nullable(),
   joinDate: dateString,
   photoUrl: z.string().url('照片URL格式不正确').optional().nullable(),
-  status: z.enum(['ACTIVE', 'RECOVERING', 'LEFT']).optional(),
 });
 
 export const athleteUpdateSchema = athleteCreateSchema.partial();
@@ -42,26 +44,36 @@ export const athleteUpdateSchema = athleteCreateSchema.partial();
 // 训练计划
 // ============================================================
 
+export const trainingPlanItemSchema = z.object({
+  athleteId: z.number().int().positive('运动员ID必须为正整数').optional().nullable(),
+  exerciseId: z.number().int().positive('项目ID必须为正整数'),
+  sets: z.number().int().positive('组数必须为正整数'),
+  reps: z.number().int().positive('次数必须为正整数'),
+  load: z.number().positive('负荷必须为正数').optional().nullable(),
+  restSeconds: z.number().int().min(0, '间歇时间不能为负数').max(600, '间歇时间不能超过600秒').optional().nullable(),
+  duration: z.number().int().min(1, '时长必须为正整数').max(600, '时长不能超过600分钟').optional().nullable(),
+  tempo: z.string().max(20, '节奏不能超过20个字符').optional().nullable(),
+  sortOrder: z.number().int().min(0).optional(),
+  notes: z.string().max(500, '备注不能超过500个字符').optional().nullable(),
+});
+
 export const trainingPlanCreateSchema = z.object({
   athleteIds: z.array(z.number().int().positive('运动员ID必须为正整数')).min(1, '请至少选择一名运动员'),
   goal: z.string().max(500, '目标不能超过500个字符').optional().nullable(),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'COMPLETED']).optional(),
-  items: z
-    .array(
-      z.object({
-        dayOfWeek: z.number().int().min(1, '星期几必须为1-7').max(7, '星期几必须为1-7'),
-        exerciseId: z.number().int().positive('项目ID必须为正整数'),
-        sets: z.number().int().positive('组数必须为正整数'),
-        reps: z.number().int().positive('次数必须为正整数'),
-        load: z.number().positive('负荷必须为正数').optional().nullable(),
-        restSeconds: z.number().int().min(0, '间歇时间不能为负数').max(600, '间歇时间不能超过600秒').optional().nullable(),
-        duration: z.number().int().min(1, '时长必须为正整数').max(600, '时长不能超过600分钟').optional().nullable(),
-        intensity: z.enum(['低', '中', '高']).optional().nullable(),
-        sortOrder: z.number().int().min(0).optional(),
-        notes: z.string().max(500, '备注不能超过500个字符').optional().nullable(),
-      })
-    )
-    .min(1, '请至少添加一个练习项目'),
+  startDate: dateString,
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, '开始时间格式不正确'),
+  status: z.enum(['DRAFT', 'SCHEDULED', 'COMPLETED']).optional(),
+  items: z.array(trainingPlanItemSchema).min(1, '请至少添加一个练习项目'),
+});
+
+// 草稿创建：允许暂缺运动员/执行时间/练习项目，正式发布时再校验完整性
+export const trainingPlanDraftSchema = z.object({
+  athleteIds: z.array(z.number().int().positive('运动员ID必须为正整数')).default([]),
+  goal: z.string().max(500, '目标不能超过500个字符').optional().nullable(),
+  startDate: dateString.optional().nullable(),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, '开始时间格式不正确').optional().nullable(),
+  status: z.enum(['DRAFT']).optional(),
+  items: z.array(trainingPlanItemSchema).default([]),
 });
 
 // ============================================================
@@ -75,18 +87,100 @@ export const trainingRecordCreateSchema = z.object({
   actualSets: z.number().int().positive('实际组数必须为正整数'),
   actualReps: z.number().int().positive('实际次数必须为正整数'),
   actualLoad: z.number().positive('实际负荷必须为正数').optional().nullable(),
+  metricValue: z.number().positive('量化值必须为正数').optional().nullable(),
   trainingDate: z.string().datetime('训练日期格式不正确'),
   rpe: z.number().int().min(1, 'RPE必须为1-10').max(10, 'RPE必须为1-10').optional().nullable(),
   notes: z.string().max(500, '备注不能超过500个字符').optional().nullable(),
 });
 
 // ============================================================
+// 出勤记录
+// ============================================================
+
+export const attendanceUpsertSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '日期格式不正确'),
+  athleteId: z.number().int().positive('运动员ID必须为正整数'),
+  status: z.enum(ATTENDANCE_STATUS_CODES, { errorMap: () => ({ message: '出勤状态无效' }) }),
+  rpe: z
+    .number()
+    .int('RPE 值必须为 1-10 的整数')
+    .min(1, 'RPE 值必须为 1-10 的整数')
+    .max(10, 'RPE 值必须为 1-10 的整数')
+    .optional()
+    .nullable(),
+  durationMinutes: z
+    .number()
+    .int('训练时长必须为非负整数（分钟）')
+    .min(0, '训练时长必须为非负整数（分钟）')
+    .optional()
+    .nullable(),
+  notes: z.string().max(500, '备注不能超过500个字符').optional().nullable(),
+});
+
+// ============================================================
+// 跳跃分析（视频跳跃生物力学分析工具）
+// ============================================================
+
+export const JUMP_TEST_TYPE_CODES = ['CMJ', 'SJ', 'DJ', 'REPEAT_10_5'] as const;
+
+const repeatJumpDatumSchema = z.object({
+  index: z.number().int().positive('跳跃序号必须为正整数'),
+  flightTimeMs: z.number().positive('飞行时间必须为正数'),
+  contactTimeMs: z.number().nonnegative('触地时间不能为负数').nullable().optional(),
+});
+
+export const jumpAnalysisCreateSchema = z.object({
+  athleteId: z.number().int().positive('运动员ID必须为正整数'),
+  testType: z.enum(JUMP_TEST_TYPE_CODES, { errorMap: () => ({ message: '测试类型无效' }) }),
+  testDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '日期格式不正确'),
+  videoName: z.string().max(255, '视频文件名不能超过255个字符').nullable().optional(),
+  videoFps: z.number().int().min(1, '帧率必须为正整数').max(1000, '帧率超出合理范围').nullable().optional(),
+  flightTimeMs: z.number().positive('飞行时间必须为正数').nullable().optional(),
+  contactTimeMs: z.number().nonnegative('触地时间不能为负数').nullable().optional(),
+  dropHeightCm: z.number().int().min(1, '下落高度必须为正整数').max(200, '下落高度超出合理范围').nullable().optional(),
+  details: z.array(repeatJumpDatumSchema).max(20, '单次测试跳跃次数不能超过20次').optional(),
+  notes: z.string().max(2000, '备注不能超过2000个字符').nullable().optional(),
+});
+
+// ============================================================
 // 体能测试
 // ============================================================
 
-export const fitnessTestCreateSchema = z.object({
+/**
+ * 测试标准（常模）条目 schema
+ *
+ * - normName：常模名称，必填，1-50 字符
+ * - mean：平均值，必填，有效数字且最多保留两位小数
+ * - stdDev：标准差，必填，大于 0 且最多保留两位小数
+ */
+export const testStandardSchema = z.object({
+  normName: z
+    .string()
+    .min(1, '常模名称不能为空')
+    .max(50, '常模名称不能超过50个字符'),
+  mean: z
+    .number({ invalid_type_error: '平均值必须为有效数字' })
+    .refine((v) => Number.isFinite(v), '平均值必须为有效数字')
+    .refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-9, '平均值最多保留两位小数'),
+  stdDev: z
+    .number({ invalid_type_error: '标准差必须为有效数字' })
+    .refine((v) => Number.isFinite(v), '标准差必须为有效数字')
+    .refine((v) => v > 0, '标准差必须大于0')
+    .refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-9, '标准差最多保留两位小数'),
+});
+
+/** 测试标准（常模）数组 schema：至少保留一套，最多 50 套 */
+export const testStandardArraySchema = z
+  .array(testStandardSchema)
+  .min(1, '请至少保留一套测试标准')
+  .max(50, '测试标准不能超过50套');
+
+/** 测试项目基础 schema：创建/更新共用字段定义 */
+const fitnessTestBaseSchema = z.object({
   name: z.string().min(1, '测试名称不能为空').max(100, '名称不能超过100个字符'),
-  category: z.string().min(1, '分类不能为空').max(50, '分类不能超过50个字符'),
+  category: z.enum(FITNESS_TEST_CATEGORIES, {
+    errorMap: () => ({ message: '分类无效' }),
+  }),
   unit: z.string().min(1, '单位不能为空').max(20, '单位不能超过20个字符'),
   direction: z.enum(['HIGHER_BETTER', 'LOWER_BETTER']).optional().nullable(),
   warningThreshold: z.number().optional().nullable(),
@@ -96,12 +190,53 @@ export const fitnessTestCreateSchema = z.object({
   equipment: z.string().max(500).optional().nullable(),
   demoVideoUrl: z.string().url('视频链接格式不正确').max(500).optional().nullable(),
   diagramUrl: z.string().url('图解链接格式不正确').max(500).optional().nullable(),
-  scoringStandard: z.string().max(1000).optional().nullable(),
-  referenceRange: z.string().max(500).optional().nullable(),
+  standards: testStandardArraySchema.optional().nullable(),
   precautions: z.string().max(1000).optional().nullable(),
+  // 成绩类型：NUMERIC 数值 / GRADE 等级 / DESCRIPTIVE 描述
+  resultType: z.enum(['NUMERIC', 'GRADE', 'DESCRIPTIVE'], {
+    invalid_type_error: '成绩类型无效',
+  }).optional(),
+  // 等级型成绩选项（GRADE 时必填，至少 2 个、最多 20 个）；null 表示清除（切换成绩类型时）
+  gradeOptions: z
+    .array(
+      z
+        .string()
+        .min(1, '等级选项不能为空')
+        .max(20, '等级选项不能超过20个字符')
+    )
+    .min(2, '等级型项目至少需要2个成绩选项')
+    .max(20, '等级选项不能超过20个')
+    .optional()
+    .nullable(),
 });
 
-export const fitnessTestUpdateSchema = fitnessTestCreateSchema.partial();
+/** 创建测试项目：GRADE 时必须配置成绩选项 */
+export const fitnessTestCreateSchema = fitnessTestBaseSchema.superRefine((data, ctx) => {
+  if (data.resultType === 'GRADE' && (!data.gradeOptions || data.gradeOptions.length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['gradeOptions'],
+      message: '等级型项目必须配置成绩选项',
+    });
+  }
+});
+
+/** 更新测试项目：部分字段可缺省 */
+export const fitnessTestUpdateSchema = fitnessTestBaseSchema.partial();
+
+/** 成绩录入行：value 为原始录入文本，null/空串表示清空该成绩 */
+export const fitnessResultRowSchema = z.object({
+  athleteId: z.number().int().positive('运动员ID无效'),
+  testId: z.number().int().positive('测试项目ID无效'),
+  value: z.string().max(500, '成绩值不能超过500个字符').nullable(),
+});
+
+/** 测试计划成绩批量保存 schema */
+export const fitnessResultsSaveSchema = z.object({
+  results: z
+    .array(fitnessResultRowSchema)
+    .max(2000, '单次成绩录入不能超过2000条'),
+});
 
 export const fitnessRecordCreateSchema = z.object({
   athleteId: z.number().int().positive('运动员ID必须为正整数'),
@@ -162,7 +297,7 @@ export const healthMetricCreateSchema = z.object({
 
 export const exerciseCreateSchema = z.object({
   name: z.string().min(1, '练习名称不能为空').max(50, '名称不能超过50个字符'),
-  category: z.string().min(1, '分类不能为空').max(30, '分类不能超过30个字符'),
+  category: z.enum(EXERCISE_CATEGORIES, { errorMap: () => ({ message: '分类无效' }) }),
   unit: z.string().min(1, '计量单位不能为空').max(20, '单位不能超过20个字符'),
   description: z.string().max(500, '描述不能超过500个字符').optional().nullable(),
   difficulty: z.enum(['初级', '中级', '高级']).optional().nullable(),
@@ -173,6 +308,7 @@ export const exerciseCreateSchema = z.object({
   isFavorite: z.boolean().optional(),
   sortOrder: z.number().int('排序必须为整数').optional(),
   isPBTrackable: z.boolean().optional(),
+  trackType: z.enum(TRACK_TYPE_CODES, { errorMap: () => ({ message: '追踪类型无效' }) }).optional(),
 });
 
 export const exerciseUpdateSchema = exerciseCreateSchema.partial();
@@ -189,7 +325,7 @@ export const fitnessPlanCreateSchema = z.object({
   location: z.string().max(200).optional().nullable(),
   weather: z.string().max(100).optional().nullable(),
   venueCondition: z.string().max(500).optional().nullable(),
-  status: z.enum(['DRAFT', 'SCHEDULED', 'COMPLETED', 'CANCELLED']).optional(),
+  status: z.enum(['DRAFT', 'SCHEDULED', 'COMPLETED']).optional(),
   notes: z.string().max(1000).optional().nullable(),
   items: z.array(z.object({
     testId: z.number().int().positive('测试项目ID必须为正整数'),

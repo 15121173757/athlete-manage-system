@@ -9,10 +9,8 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   Users,
-  ClipboardList,
   Dumbbell,
   Trophy,
-  Activity,
   HeartPulse,
   FlaskConical,
   Brain,
@@ -20,6 +18,8 @@ import {
   GripVertical,
   Check,
   RotateCcw,
+  Library,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -34,17 +34,20 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const STORAGE_KEY = 'ams-sidebar-nav-order';
+// 版本化存储键：导航结构发生重构（如动作库并入核心业务、练习库/测试库改为 Tab）时递增，
+// 避免旧排序数据（含已失效的 href）错误地将新增项追加到末尾。
+const STORAGE_KEY = 'ams-sidebar-nav-order-v3';
 
 const defaultNavGroups: NavGroup[] = [
   {
     title: '核心业务',
     items: [
+      { label: '动作库', href: '/library', icon: Library },
       { label: '数据看板', href: '/', icon: LayoutDashboard },
       { label: '运动员', href: '/athletes', icon: Users },
-      { label: '体能训练', href: '/training', icon: Dumbbell },
-      { label: '体能测试', href: '/fitness', icon: Activity },
-      { label: 'PB记录', href: '/pb', icon: Trophy },
+      { label: '体能训练管理', href: '/training', icon: Dumbbell },
+      { label: '体能测试管理', href: '/fitness-test', icon: ClipboardList },
+      { label: 'PB追踪', href: '/pb', icon: Trophy },
       { label: '伤病与负荷监控', href: '/health', icon: HeartPulse },
       { label: '运动科学工具箱', href: '/tools', icon: FlaskConical },
     ],
@@ -233,9 +236,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <ul className="space-y-1">
               {group.items.map((item, itemIdx) => {
                 const Icon = item.icon;
+                // href 可能带 query，高亮判断只取路径部分
+                const hrefPath = item.href.split('?')[0];
                 const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/' && pathname.startsWith(item.href));
+                  pathname === hrefPath ||
+                  (hrefPath !== '/' && pathname.startsWith(hrefPath));
                 const isDragging =
                   draggedItem?.groupIdx === groupIdx &&
                   draggedItem?.itemIdx === itemIdx;

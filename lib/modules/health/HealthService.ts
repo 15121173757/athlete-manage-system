@@ -86,13 +86,6 @@ export async function createInjury(data: CreateInjuryInput, operatorId: number) 
     },
   });
 
-  if (athlete.status === 'ACTIVE') {
-    await prisma.athlete.update({
-      where: { id: data.athleteId },
-      data: { status: 'RECOVERING' },
-    });
-  }
-
   await logAction({
     userId: operatorId,
     action: 'CREATE_INJURY',
@@ -180,12 +173,6 @@ export async function updateInjury(
   if (data.status !== undefined && data.status !== existing.status) {
     updateData.status = data.status;
     changes.status = { before: existing.status, after: data.status };
-    if (data.status === 'RETURNED') {
-      await prisma.athlete.update({
-        where: { id: existing.athleteId },
-        data: { status: 'ACTIVE' },
-      });
-    }
   }
 
   // 无实际变更：直接返回当前记录
@@ -258,17 +245,6 @@ export async function deleteInjury(id: number, operatorId: number) {
   }
 
   await prisma.injury.delete({ where: { id } }); // InjuryHistory 级联删除
-
-  // 若该运动员无其他未痊愈伤病，恢复在队状态
-  const remaining = await prisma.injury.count({
-    where: { athleteId: existing.athleteId, status: { in: ['INJURED', 'RECOVERING'] } },
-  });
-  if (remaining === 0) {
-    await prisma.athlete.update({
-      where: { id: existing.athleteId },
-      data: { status: 'ACTIVE' },
-    });
-  }
 
   await logAction({
     userId: operatorId,

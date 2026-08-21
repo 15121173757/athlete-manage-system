@@ -225,7 +225,6 @@ function calculateRiskScore(
 
 export async function listTeamRiskSummary(): Promise<AthleteRiskSummary[]> {
   const athletes = await prisma.athlete.findMany({
-    where: { status: { in: ['ACTIVE', 'RECOVERING'] } },
     include: {
       injuries: {
         where: { status: { in: ['INJURED', 'RECOVERING'] } },
@@ -288,7 +287,6 @@ function buildRiskPrompt(
     `- 项目：${athlete.sport}${athlete.position ? '（' + athlete.position + '）' : ''}`,
     `- 身高：${athlete.height ?? '未记录'} cm`,
     `- 体重：${athlete.weight ?? '未记录'} kg`,
-    `- 当前状态：${athlete.status === 'ACTIVE' ? '在队' : athlete.status === 'RECOVERING' ? '休养' : '离队'}`,
   ].join('\n');
 
   // 近期训练负荷

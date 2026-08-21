@@ -12,18 +12,6 @@ export enum UserRole {
   ADMIN = 'ADMIN',
 }
 
-export enum AthleteStatus {
-  ACTIVE = 'ACTIVE',
-  RECOVERING = 'RECOVERING',
-  LEFT = 'LEFT',
-}
-
-export const AthleteStatusLabels: Record<AthleteStatus, string> = {
-  ACTIVE: '在队',
-  RECOVERING: '休养',
-  LEFT: '离队',
-};
-
 export enum Gender {
   MALE = 'MALE',
   FEMALE = 'FEMALE',
@@ -36,7 +24,7 @@ export const GenderLabels: Record<Gender, string> = {
 
 export enum PlanStatus {
   DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
+  SCHEDULED = 'SCHEDULED',
   COMPLETED = 'COMPLETED',
 }
 

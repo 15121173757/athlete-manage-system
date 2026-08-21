@@ -6,7 +6,7 @@ import {
   updateTrainingPlan,
   deleteTrainingPlan,
 } from '@/lib/modules/training/TrainingService';
-import { trainingPlanCreateSchema } from '@/lib/utils/validation';
+import { trainingPlanCreateSchema, trainingPlanDraftSchema } from '@/lib/utils/validation';
 import { ValidationError, handleRouteError } from '@/lib/errors/ErrorPresenter';
 
 export async function GET(
@@ -39,7 +39,9 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const parsed = trainingPlanCreateSchema.partial().safeParse(body);
+    // 草稿编辑走宽松校验（允许暂缺运动员/执行时间、允许空练习列表）；正式计划编辑走完整校验
+    const schema = body?.status === 'DRAFT' ? trainingPlanDraftSchema : trainingPlanCreateSchema;
+    const parsed = schema.partial().safeParse(body);
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
       throw new ValidationError(firstError?.message || '输入数据无效');

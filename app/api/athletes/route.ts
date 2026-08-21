@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || undefined;
     const gender = searchParams.get('gender') || undefined;
-    const status = searchParams.get('status') || undefined;
+    const sport = searchParams.get('sport') || undefined;
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
 
-    const result = await listAthletes({ search, gender, status, page, pageSize });
+    const result = await listAthletes({ search, gender, sport, page, pageSize });
     return Response.json({ success: true, data: result });
   } catch (error) {
     return handleRouteError(error);

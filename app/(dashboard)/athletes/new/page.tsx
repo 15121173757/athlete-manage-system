@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { AthleteForm, AthleteFormData } from '@/components/athletes/AthleteForm';
 import { Button } from '@/components/ui/button';
-import { Gender, AthleteStatus } from '@/types';
+import { Gender } from '@/types';
 
 export default function NewAthletePage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function NewAthletePage() {
       if (json.success) {
         router.push(`/athletes/${json.data.id}`);
       } else {
-        setError(json.error || '创建失败');
+        setError(json.error?.message || '创建失败');
       }
     } catch {
       setError('网络错误，请稍后重试');
@@ -63,7 +63,6 @@ export default function NewAthletePage() {
           onSubmit={handleSubmit}
           initialData={{
             gender: Gender.MALE,
-            status: AthleteStatus.ACTIVE,
             joinDate: new Date().toISOString().split('T')[0],
           }}
         />

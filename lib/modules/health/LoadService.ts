@@ -82,6 +82,13 @@ function parseDateKey(key: string): Date {
   return new Date(y, m - 1, d, 0, 0, 0, 0);
 }
 
+/** 'YYYY-MM-DD' → UTC 零点（与出勤表 attendanceDate 存储语义一致） */
+function parseAttendanceDate(dateStr: string): Date {
+  const d = new Date(`${dateStr}T00:00:00.000Z`);
+  if (isNaN(d.getTime())) throw new BusinessError('INVALID_DATE', '日期格式不正确');
+  return d;
+}
+
 /** 计算以今天为截止日的近 N 天窗口 [start, end] */
 function buildWindow(days: number): { start: Date; end: Date; keys: string[] } {
   const end = new Date();
@@ -113,29 +120,55 @@ export async function createLoadRecord(input: CreateLoadRecordInput, operatorId:
   }
 
   const duration = Number(input.durationMinutes);
-  if (!Number.isFinite(duration) || duration <= 0) {
-    throw new BusinessError('INVALID_DURATION', '训练时长必须大于 0 分钟');
+  if (!Number.isInteger(duration) || duration < 0) {
+    throw new BusinessError('INVALID_DURATION', '训练时长必须为非负整数（分钟）');
   }
 
   const athlete = await prisma.athlete.findUnique({ where: { id: input.athleteId } });
   if (!athlete) throw new BusinessError('ATHLETE_NOT_FOUND', '运动员不存在');
 
-  const record = await prisma.loadRecord.create({
-    data: {
-      athleteId: input.athleteId,
-      recordDate: parseDateKey(input.recordDate),
-      rpe,
-      durationMinutes: duration,
-      trainingType: input.trainingType?.trim() || null,
-      notes: input.notes?.trim() || null,
-      recordedById: operatorId,
-    },
-    include: { athlete: { select: { id: true, name: true } } },
+  // 按天 upsert：同一运动员同一天仅保留一条负荷记录（与出勤表按天一一对应），
+  // 避免手动录入与出勤同步产生重复记录
+  const recordDate = parseDateKey(input.recordDate);
+  const existing = await prisma.loadRecord.findFirst({
+    where: { athleteId: input.athleteId, recordDate },
+  });
+
+  const record = existing
+    ? await prisma.loadRecord.update({
+        where: { id: existing.id },
+        data: {
+          rpe,
+          durationMinutes: duration,
+          trainingType: input.trainingType?.trim() || null,
+          notes: input.notes?.trim() || null,
+          recordedById: operatorId,
+        },
+        include: { athlete: { select: { id: true, name: true } } },
+      })
+    : await prisma.loadRecord.create({
+        data: {
+          athleteId: input.athleteId,
+          recordDate,
+          rpe,
+          durationMinutes: duration,
+          trainingType: input.trainingType?.trim() || null,
+          notes: input.notes?.trim() || null,
+          recordedById: operatorId,
+        },
+        include: { athlete: { select: { id: true, name: true } } },
+      });
+
+  // 双向关联：若当天该运动员已有出勤记录，同步更新其 RPE 与训练时长
+  const attendanceDate = parseAttendanceDate(input.recordDate);
+  await prisma.attendanceRecord.updateMany({
+    where: { athleteId: input.athleteId, attendanceDate },
+    data: { rpe, durationMinutes: duration },
   });
 
   await logAction({
     userId: operatorId,
-    action: 'CREATE_LOAD_RECORD',
+    action: existing ? 'UPDATE_LOAD_RECORD' : 'CREATE_LOAD_RECORD',
     targetType: 'LoadRecord',
     targetId: record.id,
     detail: { athleteId: input.athleteId, rpe, durationMinutes: duration },
@@ -355,4 +388,265 @@ export async function getAcwrRiskSummary(limit = 5): Promise<AcwrRiskSummaryItem
       return (b.acwr ?? -1) - (a.acwr ?? -1);
     })
     .slice(0, limit);
+}
+
+// ============================================================
+// 训练负荷统计（按日 / 按人员 / 按运动项目多维汇总）
+// ============================================================
+
+export interface LoadStatisticsQuery {
+  startDate?: string;
+  endDate?: string;
+  sport?: string;
+  athleteId?: number;
+}
+
+export interface LoadDailyStat {
+  date: string;
+  athleteCount: number;
+  totalLoad: number;
+  totalDurationMinutes: number;
+  avgRpe: number | null;
+}
+
+export interface LoadAthleteStat {
+  athleteId: number;
+  name: string;
+  sport: string;
+  trainingDays: number;
+  totalLoad: number;
+  totalDurationMinutes: number;
+  avgDailyLoad: number | null;
+}
+
+export interface LoadStatistics {
+  startDate: string | null;
+  endDate: string | null;
+  sport: string | null;
+  recordCount: number;
+  totalLoad: number;
+  totalDurationMinutes: number;
+  athleteCount: number;
+  daily: LoadDailyStat[];
+  athletes: LoadAthleteStat[];
+}
+
+/**
+ * 训练负荷多维统计：按日汇总 + 按人员汇总 + 总计
+ * 支持日期范围、运动项目（部门）、指定运动员筛选
+ */
+export async function getLoadStatistics(query: LoadStatisticsQuery): Promise<LoadStatistics> {
+  const { startDate, endDate, sport, athleteId } = query;
+  const where: Record<string, unknown> = {};
+
+  if (athleteId) where.athleteId = athleteId;
+  if (sport) {
+    where.athlete = { sport };
+  }
+  if (startDate || endDate) {
+    const dateFilter: Record<string, Date> = {};
+    if (startDate) dateFilter.gte = parseDateKey(startDate);
+    if (endDate) {
+      const end = parseDateKey(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+    where.recordDate = dateFilter;
+  }
+
+  const records = await prisma.loadRecord.findMany({
+    where,
+    include: { athlete: { select: { id: true, name: true, sport: true } } },
+    orderBy: { recordDate: 'asc' },
+  });
+
+  // 按日汇总
+  const dailyMap = new Map<
+    string,
+    { athleteSet: Set<number>; totalLoad: number; sumRpe: number; rpeCount: number; totalDuration: number }
+  >();
+  // 按人汇总
+  const athleteMap = new Map<
+    number,
+    { name: string; sport: string; daySet: Set<string>; totalLoad: number; totalDuration: number }
+  >();
+
+  for (const r of records) {
+    const load = r.rpe * r.durationMinutes;
+    if (!Number.isFinite(load) || load < 0) continue;
+    const day = localDateKey(r.recordDate);
+
+    const d = dailyMap.get(day) ?? {
+      athleteSet: new Set<number>(),
+      totalLoad: 0,
+      sumRpe: 0,
+      rpeCount: 0,
+      totalDuration: 0,
+    };
+    d.athleteSet.add(r.athleteId);
+    d.totalLoad += load;
+    d.sumRpe += r.rpe;
+    d.rpeCount += 1;
+    d.totalDuration += r.durationMinutes;
+    dailyMap.set(day, d);
+
+    const a = athleteMap.get(r.athleteId) ?? {
+      name: r.athlete.name,
+      sport: r.athlete.sport,
+      daySet: new Set<string>(),
+      totalLoad: 0,
+      totalDuration: 0,
+    };
+    a.daySet.add(day);
+    a.totalLoad += load;
+    a.totalDuration += r.durationMinutes;
+    athleteMap.set(r.athleteId, a);
+  }
+
+  const daily: LoadDailyStat[] = [...dailyMap.entries()]
+    .map(([date, d]) => ({
+      date,
+      athleteCount: d.athleteSet.size,
+      totalLoad: Math.round(d.totalLoad * 100) / 100,
+      totalDurationMinutes: d.totalDuration,
+      avgRpe: d.rpeCount > 0 ? Math.round((d.sumRpe / d.rpeCount) * 10) / 10 : null,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const athletes: LoadAthleteStat[] = [...athleteMap.entries()]
+    .map(([athleteId, a]) => ({
+      athleteId,
+      name: a.name,
+      sport: a.sport,
+      trainingDays: a.daySet.size,
+      totalLoad: Math.round(a.totalLoad * 100) / 100,
+      totalDurationMinutes: a.totalDuration,
+      avgDailyLoad:
+        a.daySet.size > 0 ? Math.round((a.totalLoad / a.daySet.size) * 100) / 100 : null,
+    }))
+    .sort((a, b) => b.totalLoad - a.totalLoad);
+
+  const totalLoad = Math.round(athletes.reduce((s, a) => s + a.totalLoad, 0) * 100) / 100;
+  const totalDurationMinutes = athletes.reduce((s, a) => s + a.totalDurationMinutes, 0);
+
+  return {
+    startDate: startDate ?? null,
+    endDate: endDate ?? null,
+    sport: sport ?? null,
+    recordCount: records.length,
+    totalLoad,
+    totalDurationMinutes,
+    athleteCount: athletes.length,
+    daily,
+    athletes,
+  };
+}
+
+// ============================================================
+// 历史负荷数据批量导入
+// ============================================================
+
+export interface BatchImportLoadRow {
+  athleteId: number;
+  date: string; // YYYY-MM-DD
+  rpe: number;
+  durationMinutes: number;
+  trainingType?: string;
+  notes?: string;
+}
+
+export interface BatchImportResult {
+  imported: number;
+  updated: number;
+  total: number;
+  errors: { index: number; athleteId: number; date: string; message: string }[];
+}
+
+/**
+ * 批量导入历史 RPE 与训练时长数据（供系统上线前历史数据处理）
+ * 逐条校验，非法条目跳过并记录错误（部分成功）；按天 upsert，并双向同步出勤表
+ */
+export async function batchImportLoadRecords(
+  rows: BatchImportLoadRow[],
+  operatorId: number
+): Promise<BatchImportResult> {
+  const result: BatchImportResult = { imported: 0, updated: 0, total: rows.length, errors: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const { athleteId, date } = row;
+
+    const rpe = Number(row.rpe);
+    const duration = Number(row.durationMinutes);
+    if (!Number.isInteger(athleteId) || athleteId <= 0) {
+      result.errors.push({ index: i, athleteId: athleteId ?? 0, date: date ?? '', message: '运动员ID必须为正整数' });
+      continue;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) {
+      result.errors.push({ index: i, athleteId, date: date ?? '', message: '日期格式不正确' });
+      continue;
+    }
+    if (!Number.isInteger(rpe) || rpe < 1 || rpe > 10) {
+      result.errors.push({ index: i, athleteId, date, message: 'RPE 值必须为 1-10 的整数' });
+      continue;
+    }
+    if (!Number.isInteger(duration) || duration < 0) {
+      result.errors.push({ index: i, athleteId, date, message: '训练时长必须为非负整数（分钟）' });
+      continue;
+    }
+
+    const athlete = await prisma.athlete.findUnique({ where: { id: athleteId } });
+    if (!athlete) {
+      result.errors.push({ index: i, athleteId, date, message: '运动员不存在' });
+      continue;
+    }
+
+    const recordDate = parseDateKey(date);
+    const existing = await prisma.loadRecord.findFirst({
+      where: { athleteId, recordDate },
+    });
+
+    if (existing) {
+      await prisma.loadRecord.update({
+        where: { id: existing.id },
+        data: {
+          rpe,
+          durationMinutes: duration,
+          trainingType: row.trainingType?.trim() || null,
+          notes: row.notes?.trim() || null,
+          recordedById: operatorId,
+        },
+      });
+      result.updated += 1;
+    } else {
+      await prisma.loadRecord.create({
+        data: {
+          athleteId,
+          recordDate,
+          rpe,
+          durationMinutes: duration,
+          trainingType: row.trainingType?.trim() || null,
+          notes: row.notes?.trim() || null,
+          recordedById: operatorId,
+        },
+      });
+      result.imported += 1;
+    }
+
+    // 双向关联：同步出勤表的 RPE 与训练时长（当天已有出勤记录时）
+    await prisma.attendanceRecord.updateMany({
+      where: { athleteId, attendanceDate: parseAttendanceDate(date) },
+      data: { rpe, durationMinutes: duration },
+    });
+  }
+
+  await logAction({
+    userId: operatorId,
+    action: 'BATCH_IMPORT_LOAD_RECORDS',
+    targetType: 'LoadRecord',
+    targetId: null,
+    detail: { total: result.total, imported: result.imported, updated: result.updated, errors: result.errors.length },
+  });
+
+  return result;
 }

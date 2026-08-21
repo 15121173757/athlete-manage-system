@@ -65,7 +65,6 @@ beforeEach(async () => {
       birthDate: new Date('2000-01-01'),
       sport: '篮球',
       joinDate: new Date('2024-01-01'),
-      status: 'ACTIVE',
     },
   });
   athleteId = athlete.id;
@@ -94,12 +93,6 @@ describe('createInjury 新增伤病记录', () => {
     expect(injury.treatment).toBe('休息制动、康复训练计划');
     expect(injury.status).toBe('INJURED');
     expect(injury.athlete.name).toBe('测试运动员');
-  });
-
-  it('创建伤病后运动员状态应联动为 RECOVERING', async () => {
-    await createInjury(validInput, operatorId);
-    const athlete = await prisma.athlete.findUnique({ where: { id: athleteId } });
-    expect(athlete?.status).toBe('RECOVERING');
   });
 
   it('运动员不存在时应抛出业务错误', async () => {
@@ -164,14 +157,6 @@ describe('updateInjury 编辑伤病记录（变更历史追踪）', () => {
     expect(history).toHaveLength(1);
     const changes = JSON.parse(history[0].changes);
     expect(changes.cause).toEqual({ before: '训练强度过大', after: null });
-  });
-
-  it('状态更新为 RETURNED 时运动员应恢复 ACTIVE', async () => {
-    const injury = await createInjury(validInput, operatorId);
-    await updateInjury(injury.id, { status: 'RETURNED' }, operatorId);
-
-    const athlete = await prisma.athlete.findUnique({ where: { id: athleteId } });
-    expect(athlete?.status).toBe('ACTIVE');
   });
 
   it('更新不存在的记录应抛出业务错误', async () => {
@@ -241,7 +226,6 @@ describe('updateInjury 编辑伤病记录（变更历史追踪）', () => {
         birthDate: new Date('2001-01-01'),
         sport: '田径',
         joinDate: new Date('2024-06-01'),
-        status: 'ACTIVE',
       },
     });
     const injury = await createInjury(validInput, operatorId);
@@ -267,15 +251,6 @@ describe('deleteInjury 删除伤病记录', () => {
     expect(deleted).toBeNull();
     const history = await prisma.injuryHistory.findMany({ where: { injuryId: injury.id } });
     expect(history).toHaveLength(0);
-  });
-
-  it('删除后无其他未痊愈伤病时运动员应恢复 ACTIVE', async () => {
-    const injury = await createInjury(validInput, operatorId);
-    expect((await prisma.athlete.findUnique({ where: { id: athleteId } }))?.status).toBe('RECOVERING');
-
-    await deleteInjury(injury.id, operatorId);
-    const athlete = await prisma.athlete.findUnique({ where: { id: athleteId } });
-    expect(athlete?.status).toBe('ACTIVE');
   });
 
   it('删除不存在的记录应抛出业务错误', async () => {

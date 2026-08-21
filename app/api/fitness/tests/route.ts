@@ -12,7 +12,8 @@ import {
   createFitnessTest,
   deleteFitnessTest,
 } from '@/lib/modules/fitness/FitnessService';
-import { handleRouteError } from '@/lib/errors/ErrorPresenter';
+import { fitnessTestCreateSchema } from '@/lib/utils/validation';
+import { ValidationError, handleRouteError } from '@/lib/errors/ErrorPresenter';
 
 export async function GET() {
   try {
@@ -28,7 +29,12 @@ export async function POST(request: Request) {
   try {
     await requirePermission(Permissions.FITNESS_WRITE);
     const body = await request.json();
-    const test = await createFitnessTest(body);
+    const parsed = fitnessTestCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0];
+      throw new ValidationError(firstError?.message || '输入数据无效');
+    }
+    const test = await createFitnessTest(parsed.data);
     return Response.json({ success: true, data: test }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);

@@ -35,15 +35,19 @@ model User {
   trainingPlansCreated  TrainingPlan[] @relation("CoachPlans")
   // 关联：作为录入人
   trainingRecordsRecorded TrainingRecord[] @relation("RecordedBy")
+  attendanceRecorded      AttendanceRecord[] @relation("AttendanceRecordedBy")
   fitnessRecordsRecorded  FitnessRecord[]  @relation("FitnessRecordedBy")
   injuriesRecorded        Injury[]         @relation("InjuryRecordedBy")
   injuryHistories         InjuryHistory[]  @relation("InjuryHistoryOperator")
   healthMetricsRecorded   HealthMetric[]   @relation("HealthMetricRecordedBy")
   loadRecordsRecorded     LoadRecord[]     @relation("LoadRecordedBy")
+  jumpAnalysisRecorded    JumpAnalysisRecord[] @relation("JumpAnalysisRecordedBy")
   // 审计日志
   auditLogs AuditLog[]
   // 关联：创建的体能测试计划
   fitnessPlansCreated FitnessTestPlan[] @relation("FitnessPlanCreator")
+  // 关联：录入的体能测试成绩
+  fitnessResultsRecorded FitnessTestResult[] @relation("FitnessResultRecordedBy")
 
   @@map("users")
 }
@@ -63,7 +67,6 @@ model Athlete {
   position  String?                             // 位置
   joinDate  DateTime                            // 入队日期
   photoUrl  String?                             // 照片 URL
-  status    String @default("ACTIVE")      // 状态
   metadata  String        @default("{}")        // 扩展字段（可配置属性，JSON 字符串）
   teamId    Int           @default(1)           // 团队 ID（预留多租户）
   createdAt DateTime      @default(now())
@@ -71,14 +74,18 @@ model Athlete {
 
   // 关联
   planAthletes      TrainingPlanAthlete[]
+  trainingPlanItems TrainingPlanItem[]
   trainingRecords   TrainingRecord[]
+  attendanceRecords AttendanceRecord[]
   personalBests     PersonalBest[]
   fitnessRecords    FitnessRecord[]
   injuries          Injury[]
   healthMetrics     HealthMetric[]
   loadRecords       LoadRecord[]
+  jumpAnalysisRecords JumpAnalysisRecord[]
   riskReports       InjuryRiskReport[]
   fitnessPlanParticipants FitnessTestPlanParticipant[]
+  fitnessTestResults      FitnessTestResult[]
 
   @@map("athletes")
 }
@@ -101,6 +108,7 @@ model Exercise {
   isFavorite     Boolean  @default(false)        // 是否收藏
   sortOrder      Int      @default(0)            // 排序权重
   isPBTrackable  Boolean  @default(true)         // 是否追踪 PB
+  trackType      String   @default("MAX_WEIGHT") // 追踪类型（决定 PB 取值字段与更新方向）
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -118,6 +126,8 @@ model TrainingPlan {
   id        Int        @id @default(autoincrement())
   coachId   Int                                  // 教练员 ID
   goal      String?                              // 训练目标
+  startDate DateTime?                            // 执行开始日期（计划执行日）
+  startTime String?                              // 执行开始时间（HH:mm）
   status    String @default("DRAFT")           // 状态
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -144,21 +154,22 @@ model TrainingPlanAthlete {
 model TrainingPlanItem {
   id          Int     @id @default(autoincrement())
   planId      Int                                  // 计划 ID
-  dayOfWeek   Int                                   // 星期几（1-7，1=周一）
+  athleteId   Int?                                 // 运动员 ID（为空表示全员共享配置，兼容历史计划数据）
   exerciseId  Int                                   // 项目 ID
   sets        Int                                   // 组数
   reps        Int                                   // 次数
   load        Float?                                // 负荷 (kg)
   restSeconds Int?                                  // 间歇时间（秒）
   duration    Int?                                  // 预计时长（分钟）
-  intensity   String?                               // 强度：低/中/高
+  tempo       String?                               // 节奏（自由文本，如 2-0-1-0：离心-停顿-向心-停顿秒数）
   sortOrder   Int     @default(0)                   // 排序
   notes       String?                               // 备注
 
   plan     TrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   exercise Exercise     @relation(fields: [exerciseId], references: [id])
+  athlete  Athlete?     @relation(fields: [athleteId], references: [id])
 
-  @@index([planId, dayOfWeek, sortOrder])
+  @@index([planId, sortOrder])
   @@map("training_plan_items")
 }
 
@@ -170,6 +181,7 @@ model TrainingRecord {
   actualSets    Int                                   // 实际组数
   actualReps    Int                                   // 实际次数
   actualLoad    Float?                                // 实际负荷 (kg)
+  metricValue   Float?                                // 追踪类型核心量化值（时间/高度/距离等）
   trainingDate  DateTime                              // 训练日期
   rpe           Int?                                  // 主观疲劳度 (1-10)
   notes         String?                               // 备注
@@ -202,6 +214,31 @@ model PersonalBest {
 }
 
 // ============================================================
+// 出勤记录（出勤表管理）
+// ============================================================
+
+model AttendanceRecord {
+  id             Int      @id @default(autoincrement())
+  attendanceDate DateTime                            // 出勤日期（YYYY-MM-DD，UTC 零点）
+  athleteId      Int                                 // 运动员 ID
+  status         String                              // 出勤状态：PRESENT/INJURED_ABSENT/PERSONAL_LEAVE/COMPETITION/TRAINING_CAMP/SUSPENDED
+  rpe            Int?                                // 自觉劳累程度（1-10，可空；历史数据默认 null）
+  durationMinutes Int?                               // 训练时长（分钟，非负整数，可空；历史数据默认 null）
+  notes          String?                             // 备注
+  recordedById   Int                                 // 录入人 ID
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  athlete    Athlete @relation(fields: [athleteId], references: [id])
+  recordedBy User    @relation("AttendanceRecordedBy", fields: [recordedById], references: [id])
+
+  @@unique([attendanceDate, athleteId])
+  @@index([attendanceDate])
+  @@index([athleteId, attendanceDate])
+  @@map("attendance_records")
+}
+
+// ============================================================
 // 体能测试
 // ============================================================
 
@@ -218,14 +255,17 @@ model FitnessTest {
   equipment         String?                           // 所需器材清单（逗号分隔）
   demoVideoUrl      String?                           // 演示视频链接
   diagramUrl        String?                           // 动作图解链接
-  scoringStandard   String?                           // 评分标准
+  standards         String?                           // 测试标准（常模）数组 JSON：[{normName, mean, stdDev}]
   referenceRange    String?                           // 参考数据范围
   precautions       String?                           // 测试注意事项
+  resultType        String  @default("NUMERIC")       // 成绩类型：NUMERIC 数值 / GRADE 等级 / DESCRIPTIVE 描述
+  gradeOptions      String?                           // 等级型成绩选项（JSON 数组，如 ["优秀","良好","及格"]）
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   records   FitnessRecord[]
   planItems FitnessTestPlanItem[]
+  results   FitnessTestResult[]
 
   @@map("fitness_tests")
 }
@@ -417,6 +457,7 @@ model FitnessTestPlan {
   createdBy   User                     @relation("FitnessPlanCreator", fields: [createdById], references: [id])
   items       FitnessTestPlanItem[]
   participants FitnessTestPlanParticipant[]
+  results     FitnessTestResult[]
 
   @@index([testDate])
   @@map("fitness_test_plans")
@@ -448,4 +489,68 @@ model FitnessTestPlanParticipant {
 
   @@unique([planId, athleteId])
   @@map("fitness_test_plan_participants")
+}
+
+// ============================================================
+// 体能测试成绩（测试成绩录入）
+// ============================================================
+
+model FitnessTestResult {
+  id           Int      @id @default(autoincrement())
+  planId       Int                                     // 测试计划 ID
+  athleteId    Int                                     // 运动员 ID
+  testId       Int                                     // 测试项目 ID
+  rawValue     String?                                 // 原始录入成绩文本（统一展示口径）
+  value        Float?                                  // 数值型成绩（NUMERIC）
+  gradeValue   String?                                 // 等级型成绩（GRADE）
+  textValue    String?                                 // 描述型成绩（DESCRIPTIVE）
+  recordedById Int                                     // 录入人 ID
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  plan    FitnessTestPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  athlete Athlete         @relation(fields: [athleteId], references: [id])
+  test    FitnessTest     @relation(fields: [testId], references: [id])
+  recordedBy User         @relation("FitnessResultRecordedBy", fields: [recordedById], references: [id])
+
+  @@unique([planId, athleteId, testId])
+  @@index([planId, testId])
+  @@map("fitness_test_results")
+}
+
+// ============================================================
+// 跳跃分析（视频跳跃生物力学分析工具）
+// ============================================================
+
+model JumpAnalysisRecord {
+  id              Int      @id @default(autoincrement())
+  athleteId       Int                                     // 运动员 ID
+  testType        String                                  // 测试类型：CMJ / SJ / DJ / REPEAT_10_5
+  testDate        DateTime                                // 测试日期（本地零点）
+  videoName       String?                                 // 视频文件名（视频本体仅存本地，不入库）
+  videoFps        Int?                                    // 视频帧率（标记精度依据）
+  // 单跳指标（CMJ / SJ / DJ）
+  flightTimeMs    Float?                                  // 飞行时间（ms）
+  jumpHeightCm    Float?                                  // 跳跃高度（cm，h = g·t²/8）
+  takeoffVelocity Float?                                  // 起跳速度（m/s，v = g·t/2）
+  contactTimeMs   Float?                                  // 触地时间（ms，DJ / 10-5 使用）
+  rsi             Float?                                  // 反应力量指数（= 高度(m) / 触地时间(s)）
+  dropHeightCm    Int?                                    // 下落高度（cm，DJ 跳深使用）
+  // 10-5 重复跳汇总
+  jumpCount       Int?                                    // 跳跃次数
+  avgHeightCm     Float?                                  // 平均高度（cm）
+  bestHeightCm    Float?                                  // 最佳高度（cm）
+  avgRsi          Float?                                  // 平均 RSI
+  rsiCv           Float?                                  // RSI 变异系数（%）
+  details         String    @default("[]")                // 逐跳明细（JSON 数组）
+  notes           String?                                 // 备注
+  recordedById    Int                                     // 录入人 ID
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  athlete    Athlete @relation(fields: [athleteId], references: [id])
+  recordedBy User    @relation("JumpAnalysisRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([athleteId, testDate])
+  @@map("jump_analysis_records")
 }

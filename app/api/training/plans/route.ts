@@ -5,7 +5,7 @@ import {
   listTrainingPlans,
   createTrainingPlan,
 } from '@/lib/modules/training/TrainingService';
-import { trainingPlanCreateSchema } from '@/lib/utils/validation';
+import { trainingPlanCreateSchema, trainingPlanDraftSchema } from '@/lib/utils/validation';
 import { ValidationError, handleRouteError } from '@/lib/errors/ErrorPresenter';
 
 export async function GET(request: NextRequest) {
@@ -30,7 +30,9 @@ export async function POST(request: Request) {
   try {
     const user = await requirePermission(Permissions.TRAINING_WRITE);
     const body = await request.json();
-    const parsed = trainingPlanCreateSchema.safeParse(body);
+    // 存为草稿走宽松校验；正式创建走完整校验
+    const schema = body?.status === 'DRAFT' ? trainingPlanDraftSchema : trainingPlanCreateSchema;
+    const parsed = schema.safeParse(body);
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
       throw new ValidationError(firstError?.message || '输入数据无效');

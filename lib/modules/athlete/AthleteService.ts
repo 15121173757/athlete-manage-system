@@ -25,7 +25,6 @@ export interface CreateAthleteInput {
   position?: string | null;
   joinDate: string;
   photoUrl?: string | null;
-  status?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -39,7 +38,6 @@ export interface UpdateAthleteInput {
   position?: string | null;
   joinDate?: string;
   photoUrl?: string | null;
-  status?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -66,7 +64,6 @@ export async function createAthlete(data: CreateAthleteInput, operatorId: number
       position: data.position ?? null,
       joinDate: new Date(data.joinDate),
       photoUrl: data.photoUrl ?? null,
-      status: (data.status || 'ACTIVE') as 'ACTIVE' | 'RECOVERING' | 'LEFT',
       metadata: (data.metadata ?? {}) as any,
     },
   });
@@ -115,7 +112,6 @@ export async function updateAthlete(
   if (data.position !== undefined) updateData.position = data.position;
   if (data.joinDate !== undefined) updateData.joinDate = new Date(data.joinDate);
   if (data.photoUrl !== undefined) updateData.photoUrl = data.photoUrl;
-  if (data.status !== undefined) updateData.status = data.status;
   if (data.metadata !== undefined) updateData.metadata = data.metadata;
 
   const athlete = await prisma.athlete.update({
@@ -198,11 +194,11 @@ export async function getAthlete(id: number) {
 export async function listAthletes(params: {
   search?: string;
   gender?: string;
-  status?: string;
+  sport?: string;
   page?: number;
   pageSize?: number;
 }) {
-  const { search, gender, status, page = 1, pageSize = 20 } = params;
+  const { search, gender, sport, page = 1, pageSize = 20 } = params;
 
   const where: Record<string, unknown> = {};
   if (search) {
@@ -213,7 +209,7 @@ export async function listAthletes(params: {
     ];
   }
   if (gender) where.gender = gender;
-  if (status) where.status = status;
+  if (sport) where.sport = sport;
 
   const [athletes, total] = await Promise.all([
     prisma.athlete.findMany({

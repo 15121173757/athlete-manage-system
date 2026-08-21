@@ -10,10 +10,10 @@ import { handleRouteError } from '@/lib/errors/ErrorPresenter';
 export async function GET() {
   try {
     await requirePermission(Permissions.TRAINING_READ);
-    // 星期转换：getDay() 0=周日...6=周六 → dayOfWeek 1=周一...7=周日
+    // 以本地日期作为「今日」，匹配执行开始日期为今日的训练计划
     const now = new Date();
-    const dayOfWeek = (now.getDay() + 6) % 7 + 1;
-    const result = await listTodayPlanAthletes(dayOfWeek);
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const result = await listTodayPlanAthletes(dateStr);
     return Response.json({ success: true, data: result });
   } catch (error) {
     return handleRouteError(error);

@@ -8,12 +8,12 @@
  *
  * 支持的列：
  * - name（必填）, gender（男/女）, birthDate（YYYY-MM-DD）
- * - height, weight, sport（必填）, position, joinDate（YYYY-MM-DD）, status
+ * - height, weight, sport（必填）, position, joinDate（YYYY-MM-DD）
  */
 
 import * as XLSX from 'xlsx';
 import { prisma } from '@/lib/db/prisma';
-import { Gender, AthleteStatus } from '@/types';
+import { Gender } from '@/types';
 import { logAction } from '@/lib/modules/audit/AuditService';
 
 // ============================================================
@@ -36,7 +36,6 @@ interface ParsedAthlete {
   sport: string;
   position?: string | null;
   joinDate: string;
-  status?: string;
 }
 
 // ============================================================
@@ -70,11 +69,6 @@ export function parseFile(buffer: Buffer, filename: string): ParsedAthlete[] {
     const weight = parseNumber(raw['weight'] || raw['体重']);
     const sport = String(raw['sport'] || raw['项目'] || '').trim();
     const position = String(raw['position'] || raw['位置'] || '').trim() || null;
-    const statusRaw = String(raw['status'] || raw['状态'] || '').trim().toUpperCase();
-    const status = statusRaw === 'ACTIVE' || statusRaw === '在队' ? AthleteStatus.ACTIVE
-      : statusRaw === 'RECOVERING' || statusRaw === '休养' ? AthleteStatus.RECOVERING
-      : statusRaw === 'LEFT' || statusRaw === '离队' ? AthleteStatus.LEFT
-      : AthleteStatus.ACTIVE;
 
     return {
       name,
@@ -85,7 +79,6 @@ export function parseFile(buffer: Buffer, filename: string): ParsedAthlete[] {
       sport,
       position: position || null,
       joinDate: joinDate || new Date().toISOString().split('T')[0],
-      status,
     };
   });
 }
@@ -150,7 +143,6 @@ export async function importAthletes(
           sport: item.sport,
           position: item.position,
           joinDate: new Date(item.joinDate),
-          status: (item.status || AthleteStatus.ACTIVE) as 'ACTIVE' | 'RECOVERING' | 'LEFT',
         },
       });
       result.success++;

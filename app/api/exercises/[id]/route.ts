@@ -24,12 +24,20 @@ export async function GET(
 ) {
   try {
     await requirePermission(Permissions.TRAINING_READ);
-    const exercise = await getExerciseById(parseInt(params.id));
+    const id = parseExerciseId(params.id);
+    const exercise = await getExerciseById(id);
     if (!exercise) throw new NotFoundError('练习不存在');
     return Response.json({ success: true, data: exercise });
   } catch (error) {
     return handleRouteError(error);
   }
+}
+
+/** 解析路径 id：非法（非正整数）时抛出 404，避免 NaN 落入数据库查询导致 500 */
+function parseExerciseId(raw: string): number {
+  const id = parseInt(raw, 10);
+  if (!Number.isInteger(id) || id <= 0) throw new NotFoundError('练习不存在');
+  return id;
 }
 
 export async function PUT(
@@ -45,7 +53,7 @@ export async function PUT(
       throw new ValidationError(firstError?.message || '输入数据无效');
     }
 
-    const id = parseInt(params.id);
+    const id = parseExerciseId(params.id);
     const before = await getExerciseById(id);
     if (!before) throw new NotFoundError('练习不存在');
 
@@ -71,7 +79,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requirePermission(Permissions.TRAINING_WRITE);
-    const id = parseInt(params.id);
+    const id = parseExerciseId(params.id);
     const before = await getExerciseById(id);
     if (!before) throw new NotFoundError('练习不存在');
 

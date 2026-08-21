@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Edit2, Trash2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Gender, AthleteStatus } from '@/types';
+import { Gender } from '@/types';
 import AthleteAvatar from '../components/AthleteAvatar';
 import AthleteTrainingPlans from '../components/AthleteTrainingPlans';
 import AthletePBs from '../components/AthletePBs';
@@ -20,7 +20,6 @@ interface Athlete {
   sport: string;
   position: string | null;
   joinDate: string;
-  status: AthleteStatus;
   photoUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -29,12 +28,6 @@ interface Athlete {
 const genderLabels: Record<string, string> = {
   MALE: '男',
   FEMALE: '女',
-};
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  ACTIVE: { label: '在队', color: 'text-ams-success' },
-  RECOVERING: { label: '休养', color: 'text-ams-warning' },
-  LEFT: { label: '离队', color: 'text-ams-text-muted' },
 };
 
 export default function AthleteDetailPage() {
@@ -53,7 +46,7 @@ export default function AthleteDetailPage() {
         if (json.success) {
           setAthlete(json.data);
         } else {
-          setError(json.error || '加载失败');
+          setError(json.error?.message || '加载失败');
         }
       } catch {
         setError('网络错误');
@@ -72,7 +65,7 @@ export default function AthleteDetailPage() {
       if (json.success) {
         router.push('/athletes');
       } else {
-        alert(json.error || '删除失败');
+        alert(json.error?.message || '删除失败');
       }
     } catch {
       alert('网络错误');
@@ -100,8 +93,6 @@ export default function AthleteDetailPage() {
       </div>
     );
   }
-
-  const s = statusLabels[athlete.status] || { label: athlete.status, color: 'text-ams-text-secondary' };
 
   return (
     <div className="space-y-6">
@@ -144,9 +135,6 @@ export default function AthleteDetailPage() {
           <div className="w-full flex-1 text-center md:text-left">
             <div className="mb-4 flex items-center justify-center gap-3 md:justify-start">
               <h3 className="text-2xl font-bold text-ams-text-primary">{athlete.name}</h3>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.color} bg-ams-surface-hover`}>
-                {s.label}
-              </span>
             </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3">
               <div>

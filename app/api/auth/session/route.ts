@@ -16,10 +16,11 @@ export async function GET() {
       success: true,
       data: {
         user: {
-          id: user.userId,
+          userId: user.userId,
           username: user.username,
           name: user.name,
           role: user.role,
+          isActive: user.isActive,
         },
       },
     });

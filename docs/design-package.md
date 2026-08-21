@@ -137,7 +137,7 @@
 
 ### 页面结构
 1. **顶栏**：Logo + 全局搜索（自然语言查询入口）+ 用户菜单 + 角色标识
-2. **左侧导航**：数据看板 / 运动员 / 体能训练 / 体能测试 / PB记录 / 伤病与负荷监控 / 数据分析 / 系统管理
+2. **左侧导航**：动作库（练习库 / 测试库） / 数据看板 / 运动员 / 体能训练与测试 / PB记录 / 伤病与负荷监控 / 数据分析 / 系统管理
 3. **主内容区**：数据表格 + 图表卡片 + 操作面板
 4. **右侧抽屉**：详情查看、快速编辑、AI 报告展示
 5. **状态层**：空状态 / 加载骨架 / 错误提示（统一中文错误文案）
@@ -371,44 +371,79 @@
 
 ---
 
+### Module: LibraryModule（动作库模块）
+
+**Responsibility**
+1. 练习库管理（训练动作/项目字典，含分类、难度、目标肌群、器材、收藏、PB 追踪类型）
+2. 测试库管理（体能测试项目字典，含评价方向、预警阈值、测试标准（常模数组）、参考范围）
+3. 为「体能训练与测试」模块的训练计划与测试计划提供项目/动作字典数据源
+
+**Non-responsibility**
+1. 不负责训练计划制定与记录
+2. 不负责测试计划制定与测试数据录入
+3. 不负责 LLM 分析
+
+**Input**
+1. 练习/测试项目定义表单
+2. 查询与筛选条件（分类、难度、方向、收藏）
+
+**Output**
+1. 练习项目列表 / 详情
+2. 测试项目列表 / 详情
+
+**Public interface**
+1. `GET/POST /api/exercises` 练习项目
+2. `GET/PUT/DELETE /api/exercises/:id` 练习详情
+3. `PATCH /api/exercises/:id/favorite` 收藏切换
+4. `GET/POST /api/fitness/tests` 测试项目字典
+5. `GET/PUT/DELETE /api/fitness/tests/:id` 测试项目详情
+6. `ExerciseService`、`FitnessService`（测试项目部分）
+
+**Dependencies**
+1. Prisma（Exercise、FitnessTest 表）
+
+**Extension points**
+1. 未来支持练习/测试项目模板库与批量导入
+
+---
+
 ### Module: FitnessModule（体能测试模块）
 
 **Responsibility**
-1. 体能测试项目字典管理（可配置）
-2. 测试数据录入
-3. 历史趋势图表数据
-4. 成绩对比分析
-5. 超标预警
+1. 体能测试计划制定与发布（已并入「体能训练与测试」模块的「测试计划」Tab）
+2. 体能测试记录服务（底层 FitnessRecord 表保留，供 LLM 伤病风险分析与智能查询引用）
+3. 器材汇总与状态刷新
 
 **Non-responsibility**
 1. 不负责训练记录
-2. 不负责 LLM 分析
+2. 不负责测试项目字典（已迁至动作库模块）
 
 **Input**
-1. 测试项目定义
+1. 测试计划定义
 2. 测试数据表单
 3. 查询条件
 
 **Output**
-1. 测试数据列表
-2. 趋势数据（按时间序列）
-3. 对比数据（多运动员或多时间点）
-4. 预警列表
+1. 测试计划列表 / 详情
+2. 测试记录数据（供 LLM 分析）
+3. 器材汇总列表
 
 **Public interface**
-1. `GET/POST/PUT/DELETE /api/fitness/tests` 测试项目字典
-2. `GET/POST /api/fitness/records` 测试数据
-3. `GET /api/fitness/trend/:athleteId/:testId` 趋势
-4. `GET /api/fitness/compare` 对比
-5. `FitnessService` 类
+1. `GET/POST /api/fitness/plans` 测试计划
+2. `GET/PUT/DELETE /api/fitness/plans/:id` 测试计划详情
+3. `POST /api/fitness/plans/:id/publish` 发布测试计划
+4. `GET /api/fitness/plans/:id/equipment` 器材汇总
+5. `GET/POST/PUT/DELETE /api/fitness/tests` 测试项目字典（动作库模块复用）
+6. `FitnessService` 类
 
 **Hidden internals**
 1. 超标阈值算法
-2. 趋势聚合算法
+2. 计划状态自动刷新算法
 
 **Dependencies**
-1. Prisma（FitnessTest、FitnessRecord 表）
+1. Prisma（FitnessTest、FitnessRecord、FitnessTestPlan 表）
 2. AthleteModule
+3. LibraryModule
 
 **Extension points**
 1. 未来支持批量测试导入

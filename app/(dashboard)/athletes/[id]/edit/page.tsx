@@ -17,7 +17,6 @@ interface Athlete {
   sport: string;
   position: string | null;
   joinDate: string;
-  status: string;
 }
 
 export default function EditAthletePage() {
@@ -37,7 +36,7 @@ export default function EditAthletePage() {
         if (json.success) {
           setAthlete(json.data);
         } else {
-          setError(json.error || '加载失败');
+          setError(json.error?.message || '加载失败');
         }
       } catch {
         setError('网络错误');
@@ -65,7 +64,7 @@ export default function EditAthletePage() {
       if (json.success) {
         router.push(`/athletes/${params.id}`);
       } else {
-        setError(json.error || '更新失败');
+        setError(json.error?.message || '更新失败');
       }
     } catch {
       setError('网络错误，请稍后重试');
@@ -103,7 +102,6 @@ export default function EditAthletePage() {
     sport: athlete.sport,
     position: athlete.position || '',
     joinDate: athlete.joinDate.split('T')[0],
-    status: athlete.status as any,
   };
 
   return (

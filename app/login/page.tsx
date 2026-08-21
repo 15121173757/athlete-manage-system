@@ -30,7 +30,7 @@ export default function LoginPage() {
         login(json.data.user);
         router.push('/');
       } else {
-        setError(json.error || '登录失败，请检查用户名和密码');
+        setError(json.error?.message || '登录失败，请检查用户名和密码');
       }
     } catch {
       setError('网络错误，请稍后重试');

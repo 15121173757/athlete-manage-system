@@ -27,7 +27,7 @@ interface TodayPlanItem {
   load: number | null;
   restSeconds: number | null;
   duration: number | null;
-  intensity: string | null;
+  tempo: string | null;
   notes: string | null;
 }
 
@@ -46,7 +46,6 @@ interface TodayPlanAthlete {
   name: string;
   sport: string;
   position: string | null;
-  status: string;
   plans: TodayPlanUnit[];
 }
 
@@ -58,20 +57,6 @@ interface TodayPlansResult {
 }
 
 const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-
-/** 运动员状态徽章 */
-const ATHLETE_STATUS: Record<string, { label: string; cls: string }> = {
-  ACTIVE: { label: '在队', cls: 'border-ams-success/60 text-ams-success' },
-  RESTING: { label: '休养', cls: 'border-ams-warning/60 text-ams-warning' },
-  LEFT: { label: '离队', cls: 'border-ams-text-muted/60 text-ams-text-muted' },
-};
-
-/** 强度徽章 */
-const INTENSITY_STYLE: Record<string, string> = {
-  '低': 'border-ams-info/60 text-ams-info',
-  '中': 'border-ams-warning/60 text-ams-warning',
-  '高': 'border-ams-primary/60 text-ams-primary',
-};
 
 function formatDate(dateStr: string): string {
   const d = new Date(`${dateStr}T00:00:00`);
@@ -176,12 +161,11 @@ export default function TodayPlansPage() {
         <div className="flex flex-col items-center justify-center rounded-ams border border-dashed border-ams-border py-20 text-center">
           <CalendarDays className="mb-2 h-8 w-8 text-ams-text-muted" />
           <p className="text-sm text-ams-text-secondary">今日暂无训练计划安排</p>
-          <p className="mt-1 text-xs text-ams-text-muted">发布训练计划并安排至对应星期后，将在此展示当日训练安排</p>
+          <p className="mt-1 text-xs text-ams-text-muted">创建待执行训练计划并安排至对应日期后，将在此展示当日训练安排</p>
         </div>
       ) : (
         <div className="space-y-5">
           {data.athletes.map((athlete) => {
-            const status = ATHLETE_STATUS[athlete.status] || ATHLETE_STATUS.ACTIVE;
             return (
               <section key={athlete.athleteId} className="ams-card overflow-hidden">
                 {/* 用户信息头 */}
@@ -192,9 +176,6 @@ export default function TodayPlansPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-semibold text-ams-text-primary">{athlete.name}</h3>
-                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${status.cls}`}>
-                        {status.label}
-                      </span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-ams-text-muted">
                       <UserRound className="h-3 w-3" />
@@ -234,11 +215,12 @@ export default function TodayPlansPage() {
                               <th className="px-4 py-2 text-left">#</th>
                               <th className="px-3 py-2 text-left">训练项目</th>
                               <th className="px-3 py-2 text-left">分类</th>
-                              <th className="px-3 py-2 text-left">组 × 次</th>
                               <th className="px-3 py-2 text-left">负荷</th>
-                              <th className="px-3 py-2 text-left">强度</th>
-                              <th className="px-3 py-2 text-left">预计时长</th>
+                              <th className="px-3 py-2 text-left">次数</th>
+                              <th className="px-3 py-2 text-left">时长</th>
+                              <th className="px-3 py-2 text-left">组数</th>
                               <th className="px-3 py-2 text-left">间歇</th>
+                              <th className="px-3 py-2 text-left">节奏</th>
                               <th className="px-3 py-2 text-left">备注</th>
                             </tr>
                           </thead>
@@ -252,25 +234,24 @@ export default function TodayPlansPage() {
                                 <td className="px-3 py-2.5 text-ams-text-secondary whitespace-nowrap">
                                   {item.category}
                                 </td>
-                                <td className="px-3 py-2.5 text-ams-text-primary whitespace-nowrap">
-                                  {item.sets} × {item.reps}
-                                  {item.unit !== '次' ? `（${item.unit}）` : ''}
-                                </td>
                                 <td className="px-3 py-2.5 text-ams-text-secondary whitespace-nowrap">
-                                  {item.load != null ? `${item.load} kg` : '—'}
+                                  {item.load != null ? `${item.load} ${item.unit || 'kg'}` : '—'}
                                 </td>
-                                <td className="px-3 py-2.5 whitespace-nowrap">
-                                  {item.intensity ? (
-                                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${INTENSITY_STYLE[item.intensity] || 'border-ams-border/60 text-ams-text-secondary'}`}>
-                                      {item.intensity}
-                                    </span>
-                                  ) : '—'}
+                                <td className="px-3 py-2.5 text-ams-text-primary whitespace-nowrap">
+                                  {item.reps}
+                                  {item.unit !== '次' ? `（${item.unit}）` : ''}
                                 </td>
                                 <td className="px-3 py-2.5 text-ams-text-secondary whitespace-nowrap">
                                   {item.duration != null ? `${item.duration} 分钟` : '—'}
                                 </td>
+                                <td className="px-3 py-2.5 text-ams-text-primary whitespace-nowrap">
+                                  {item.sets}
+                                </td>
                                 <td className="px-3 py-2.5 text-ams-text-secondary whitespace-nowrap">
                                   {item.restSeconds != null ? `${item.restSeconds} 秒` : '—'}
+                                </td>
+                                <td className="px-3 py-2.5 text-ams-text-secondary whitespace-nowrap">
+                                  {item.tempo || '—'}
                                 </td>
                                 <td className="px-3 py-2.5 text-ams-text-muted">{item.notes || '—'}</td>
                               </tr>

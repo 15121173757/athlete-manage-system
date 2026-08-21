@@ -2,7 +2,7 @@
 
 /**
  * 运动科学工具箱 —— /tools
- * 与「体能训练」「体能测试」「伤病与负荷监控」同级的独立业务模块
+ * 与「体能训练管理」「体能测试管理」「伤病与负荷监控」同级的独立业务模块
  *
  * 界面设计：移除页头与 Tab 导航条，仅保留工具卡片，
  * 卡片自适应布局充分利用可用空间；点击卡片进入对应工具（带返回入口）。
@@ -10,6 +10,7 @@
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
@@ -18,12 +19,15 @@ import {
   Gauge,
   HeartPulse,
   TrendingUp,
+  Video,
 } from 'lucide-react';
 import { HRIntensityTool } from './components/HRIntensityTool';
 import { FVPProfileTool } from './components/FVPProfileTool';
 import { OneRMProfileTool } from './components/OneRMProfileTool';
 import { NeedsAnalysisTool } from './components/NeedsAnalysisTool';
 import { VO2maxTool } from './components/VO2maxTool';
+import { MovementScreenTool } from './components/MovementScreenTool';
+import { JumpAnalysisTool } from './components/JumpAnalysisTool';
 
 const TOOLS = [
   {
@@ -64,6 +68,22 @@ const TOOLS = [
     icon: TrendingUp,
     desc: '通过 5 种循证现场测试法（Cooper 12 分钟跑/1.5 英里跑/6 分钟步行/Astrand 踏车/Bruce 跑台）估算最大摄氧量，输出有氧能力分级、%VO₂max 训练强度带与报告导出。',
     models: ['5 种现场测试法', 'ACSM 分级', '强度带处方'],
+    status: '已上线',
+  },
+  {
+    key: 'movement-screen',
+    name: 'FMS 功能性动作筛查',
+    icon: Activity,
+    desc: '基于 Gray Cook 体系的 7 大基础动作筛查（深蹲/跨栏步/弓步蹲/肩部灵活/直腿抬高/俯卧撑/旋转稳定），0-3 分评分、总分 21 分，输出风险分级、左右不对称检测与逐项改进建议，支持批量导入导出。',
+    models: ['7 动作评分', '左右不对称检测', '批量导入导出'],
+    status: '已上线',
+  },
+  {
+    key: 'jump-analysis',
+    name: '跳跃视频分析',
+    icon: Video,
+    desc: '上传离线拍摄的慢动作跳跃视频（120/240fps），逐帧标记起跳与落地，基于飞行时间法自动计算跳跃高度（h = g·t²/8）、飞行时间、起跳速度，DJ 额外输出触地时间与反应力量指数（RSI），支持 10-5 重复跳跃测试与历史趋势追踪。',
+    models: ['CMJ/SJ/DJ/10-5', '飞行时间法', 'RSI 反应力量指数'],
     status: '已上线',
   },
 ];
@@ -140,6 +160,8 @@ function ToolsModuleContent() {
           {activeTool === 'one-rm' && <OneRMProfileTool />}
           {activeTool === 'needs-analysis' && <NeedsAnalysisTool />}
           {activeTool === 'vo2max' && <VO2maxTool />}
+          {activeTool === 'movement-screen' && <MovementScreenTool />}
+          {activeTool === 'jump-analysis' && <JumpAnalysisTool />}
         </div>
       ) : TOOLS.length === 1 ? (
         /* 仅一个工具时：全宽横条卡片，充分利用可用空间 */

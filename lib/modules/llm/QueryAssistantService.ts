@@ -157,7 +157,6 @@ function extractAthleteName(question: string): string | null {
 
 async function fetchAthleteInfo(question: string): Promise<string> {
   const athletes = await prisma.athlete.findMany({
-    where: { status: { not: 'LEFT' } },
     take: 20,
     orderBy: { name: 'asc' },
   });
@@ -174,18 +173,16 @@ async function fetchAthleteInfo(question: string): Promise<string> {
       `- 身高：${matched.height ?? '未记录'} cm`,
       `- 体重：${matched.weight ?? '未记录'} kg`,
       `- 入队日期：${matched.joinDate.toLocaleDateString('zh-CN')}`,
-      `- 状态：${matched.status === 'ACTIVE' ? '在队' : matched.status === 'RECOVERING' ? '休养' : '离队'}`,
     ].join('\n');
   }
 
   // 未匹配到具体运动员，返回列表
-  const list = athletes.map((a) => `- ${a.name}（${a.sport}，${a.status === 'ACTIVE' ? '在队' : '休养'}）`).join('\n');
+  const list = athletes.map((a) => `- ${a.name}（${a.sport}）`).join('\n');
   return `### 运动员列表（共 ${athletes.length} 人）\n${list}`;
 }
 
 async function fetchTrainingRecords(question: string): Promise<string> {
   const athletes = await prisma.athlete.findMany({
-    where: { status: { not: 'LEFT' } },
     select: { id: true, name: true },
   });
 
@@ -223,7 +220,6 @@ async function fetchTrainingRecords(question: string): Promise<string> {
 
 async function fetchFitnessData(question: string): Promise<string> {
   const athletes = await prisma.athlete.findMany({
-    where: { status: { not: 'LEFT' } },
     select: { id: true, name: true },
   });
 
@@ -258,7 +254,6 @@ async function fetchFitnessData(question: string): Promise<string> {
 
 async function fetchInjuryHistory(question: string): Promise<string> {
   const athletes = await prisma.athlete.findMany({
-    where: { status: { not: 'LEFT' } },
     select: { id: true, name: true },
   });
 
@@ -291,7 +286,6 @@ async function fetchInjuryHistory(question: string): Promise<string> {
 
 async function fetchPBData(question: string): Promise<string> {
   const athletes = await prisma.athlete.findMany({
-    where: { status: { not: 'LEFT' } },
     select: { id: true, name: true },
   });
 
@@ -323,7 +317,7 @@ async function fetchPBData(question: string): Promise<string> {
 
 async function fetchTeamOverview(): Promise<string> {
   const [totalAthletes, activeInjuries, recentTrainingCount, totalPBs] = await Promise.all([
-    prisma.athlete.count({ where: { status: { not: 'LEFT' } } }),
+    prisma.athlete.count(),
     prisma.injury.count({ where: { status: { in: ['INJURED', 'RECOVERING'] } } }),
     prisma.trainingRecord.count({
       where: { trainingDate: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
@@ -331,20 +325,9 @@ async function fetchTeamOverview(): Promise<string> {
     prisma.personalBest.count(),
   ]);
 
-  const athletesByStatus = await prisma.athlete.groupBy({
-    by: ['status'],
-    _count: true,
-  });
-
-  const statusLines = athletesByStatus.map((s) => {
-    const label = s.status === 'ACTIVE' ? '在队' : s.status === 'RECOVERING' ? '休养' : '离队';
-    return `- ${label}：${s._count} 人`;
-  }).join('\n');
-
   return [
     `### 全队概况`,
-    `- 在队运动员总数：${totalAthletes} 人`,
-    statusLines,
+    `- 运动员总数：${totalAthletes} 人`,
     `- 当前伤病人数：${activeInjuries} 人`,
     `- 本周训练记录：${recentTrainingCount} 条`,
     `- PB 纪录总数：${totalPBs} 条`,

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, CalendarDays, User, Target, Dumbbell, Clock, Edit2, Trash2, Check, X, Download, FileText, FileSpreadsheet, UserPlus, Search } from 'lucide-react';
+import { ArrowLeft, CalendarDays, User, Target, Dumbbell, Clock, Edit2, Trash2, Check, X, Download, FileText, FileSpreadsheet, UserPlus, Search, Send, Info, Save, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ExercisePickerModal, { PickerExercise } from '@/app/(dashboard)/training/components/ExercisePickerModal';
+import PlanItemEditor, { EditablePlanItem } from '@/app/(dashboard)/training/components/PlanItemEditor';
 
 interface Exercise {
   id: number;
@@ -18,7 +19,8 @@ interface Exercise {
 
 interface PlanItem {
   id: number;
-  dayOfWeek: number;
+  athleteId: number | null;
+  athlete: { id: number; name: string } | null;
   exerciseId: number;
   exercise: Exercise;
   sets: number;
@@ -26,7 +28,7 @@ interface PlanItem {
   load: number | null;
   restSeconds: number | null;
   duration: number | null;
-  intensity: string | null;
+  tempo: string | null;
   sortOrder: number;
   notes: string | null;
 }
@@ -35,6 +37,8 @@ interface TrainingPlan {
   id: number;
   coachId: number;
   goal: string | null;
+  startDate: string | null;
+  startTime: string | null;
   status: string;
   createdAt: string;
   planAthletes: { athlete: { id: number; name: string } }[];
@@ -47,16 +51,24 @@ interface Athlete {
   name: string;
 }
 
-const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-
 /** 来源列表记录键：由列表页进入详情前写入，供「返回列表」恢复筛选/分页状态 */
 const PLAN_RETURN_KEY = 'ams-plan-list-return';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   DRAFT: { label: '草稿', color: 'bg-ams-text-secondary/10 text-ams-text-secondary' },
-  PUBLISHED: { label: '已发布', color: 'bg-ams-primary/10 text-ams-primary' },
-  COMPLETED: { label: '已完成', color: 'bg-ams-success/10 text-ams-success' },
+  SCHEDULED: { label: '待执行', color: 'bg-ams-primary/10 text-ams-primary' },
+  COMPLETED: { label: '已执行', color: 'bg-ams-success/10 text-ams-success' },
 };
+
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+/** 执行时间展示格式：YYYY-MM-DD-周X HH:MM（星期按北京时间计算，与 UTC 零点日期一致） */
+function formatExecuteTime(startDate: string | null, startTime: string | null): string {
+  if (!startDate) return '-';
+  const dateStr = startDate.slice(0, 10);
+  const weekday = WEEKDAYS[new Date(`${dateStr}T00:00:00.000Z`).getUTCDay()];
+  return `${dateStr}-${weekday}${startTime ? ` ${startTime}` : ''}`;
+}
 
 const categoryIcons: Record<string, React.ReactNode> = {
   '力量': <Dumbbell className="h-4 w-4" />,
@@ -67,11 +79,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
   '恢复': <Clock className="h-4 w-4" />,
 };
 
-const intensityColors: Record<string, string> = {
-  '低': 'bg-ams-success/15 text-ams-success',
-  '中': 'bg-ams-primary/15 text-ams-primary',
-  '高': 'bg-ams-danger/15 text-ams-danger',
-};
+/** 练习参数统一展示顺序：负荷 → 次数 → 时长 → 组数 → 间歇 → 节奏 → 备注 */
+const PARAM_ORDER = ['load', 'reps', 'duration', 'sets', 'restSeconds', 'tempo', 'notes'] as const;
 
 export default function TrainingPlanDetailPage() {
   const params = useParams();
@@ -83,7 +92,6 @@ export default function TrainingPlanDetailPage() {
   // 导出相关状态
   const [allAthletes, setAllAthletes] = useState<Athlete[]>([]);
   const [exportAthleteId, setExportAthleteId] = useState<number | null>(null);
-  const [exportDate, setExportDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState('');
 
@@ -96,6 +104,22 @@ export default function TrainingPlanDetailPage() {
   // 删除确认弹窗状态
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 发布状态
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState('');
+
+  // 草稿编辑状态
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ startDate: '', startTime: '' });
+  const [editItems, setEditItems] = useState<EditablePlanItem[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
+  /** 练习选择弹窗当前面向的运动员（独立配置模式下的分组添加） */
+  const [pickerTargetAthleteId, setPickerTargetAthleteId] = useState<number | null>(null);
+  const [exercises, setExercises] = useState<PickerExercise[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [saveMsg, setSaveMsg] = useState('');
 
   useEffect(() => {
     const id = params.id;
@@ -164,10 +188,185 @@ export default function TrainingPlanDetailPage() {
     }
   };
 
+  const handlePublish = async () => {
+    if (!plan) return;
+    setIsPublishing(true);
+    setPublishMsg('');
+    try {
+      const res = await fetch(`/api/training/plans/${plan.id}/publish`, { method: 'POST' });
+      const json = await res.json();
+      if (json.success) {
+        setPlan(json.data);
+        const statusLabel = statusLabels[json.data.status]?.label || json.data.status;
+        setPublishMsg(`发布成功，状态已更新为「${statusLabel}」`);
+      } else {
+        setPublishMsg(json.error?.message || '发布失败');
+      }
+    } catch {
+      setPublishMsg('网络错误');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const fetchExercises = useCallback(async () => {
+    try {
+      const res = await fetch('/api/exercises?pageSize=200');
+      const json = await res.json();
+      if (json.success) setExercises(json.data.exercises);
+    } catch { /* empty */ }
+  }, []);
+
+  /** 进入草稿编辑模式：以当前计划数据填充编辑表单 */
+  const startEdit = () => {
+    if (!plan) return;
+    setEditForm({
+      startDate: plan.startDate ? plan.startDate.slice(0, 10) : '',
+      startTime: plan.startTime || '',
+    });
+    setEditItems(plan.items.map((item) => ({
+      id: `existing-${item.id}`,
+      athleteId: item.athleteId,
+      exerciseId: item.exerciseId,
+      exercise: item.exercise,
+      sets: item.sets,
+      reps: item.reps,
+      load: item.load,
+      restSeconds: item.restSeconds,
+      duration: item.duration,
+      tempo: item.tempo || '',
+      sortOrder: item.sortOrder,
+      notes: item.notes || '',
+    })));
+    setEditError('');
+    setSaveMsg('');
+    fetchExercises();
+    setIsEditing(true);
+  };
+
+  /** 草稿编辑是否采用「共享配置」（所有练习项未指定运动员，兼容历史数据） */
+  const isSharedItems = editItems.every((i) => i.athleteId == null);
+
+  const openPickerFor = (athleteId: number | null) => {
+    setPickerTargetAthleteId(athleteId);
+    fetchExercises();
+    setShowPicker(true);
+  };
+
+  const addItemsToPlan = (selected: PickerExercise[]) => {
+    // 共享模式下补充运动员维度的练习仍统一为空（athleteId null）；独立模式下按分组目标运动员添加
+    const targetAthleteId = isSharedItems ? null : pickerTargetAthleteId;
+    if (!isSharedItems && targetAthleteId == null) return;
+    const base = editItems
+      .filter((i) => i.athleteId === targetAthleteId)
+      .reduce((max, i) => Math.max(max, i.sortOrder), -1) + 1;
+    const newItems: EditablePlanItem[] = selected.map((exercise, i) => ({
+      id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
+      athleteId: targetAthleteId,
+      exerciseId: exercise.id,
+      exercise,
+      sets: 3,
+      reps: 10,
+      load: null,
+      restSeconds: 60,
+      duration: null,
+      tempo: '',
+      sortOrder: base + i,
+      notes: '',
+    }));
+    setEditItems(prev => [...prev, ...newItems]);
+    setShowPicker(false);
+  };
+
+  const updateEditItem = (id: string, updates: Partial<EditablePlanItem>) => {
+    setEditItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+  };
+
+  const removeEditItem = (id: string) => {
+    setEditItems(prev => prev.filter(i => i.id !== id));
+  };
+
+  const moveEditItem = (id: string, direction: 'up' | 'down') => {
+    setEditItems(prev => {
+      const idx = prev.findIndex(i => i.id === id);
+      if (idx === -1) return prev;
+      const item = prev[idx];
+      // 仅在所属运动员分组内重排
+      const groupIdxList = prev
+        .map((i, index) => ({ i, index }))
+        .filter(({ i }) => i.athleteId === item.athleteId);
+      const pos = groupIdxList.findIndex(({ index }) => index === idx);
+      if (pos === -1) return prev;
+      const targetPos = direction === 'up' ? pos - 1 : pos + 1;
+      if (targetPos < 0 || targetPos >= groupIdxList.length) return prev;
+      const a = groupIdxList[pos];
+      const b = groupIdxList[targetPos];
+      const next = [...prev];
+      [next[a.index], next[b.index]] = [next[b.index], next[a.index]];
+      const order = new Map<string, number>();
+      let n = 0;
+      for (const { i, index } of groupIdxList) {
+        order.set(next[index].id, n);
+        n += 1;
+      }
+      return next.map(i => (order.has(i.id) ? { ...i, sortOrder: order.get(i.id)! } : i));
+    });
+  };
+
+  /** 保存草稿编辑：更新执行时间与练习安排，保持草稿状态 */
+  const handleSaveEdit = async () => {
+    if (!plan) return;
+    if (showPicker) { setEditError('请先完成练习选择'); return; }
+    setIsSaving(true);
+    setEditError('');
+    try {
+      const res = await fetch(`/api/training/plans/${plan.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: editForm.startDate || null,
+          startTime: editForm.startTime || null,
+          status: 'DRAFT',
+          items: editItems.map(i => ({
+            athleteId: i.athleteId,
+            exerciseId: i.exerciseId,
+            sets: i.sets,
+            reps: i.reps,
+            load: i.load,
+            restSeconds: i.restSeconds,
+            duration: i.duration,
+            tempo: i.tempo || null,
+            sortOrder: i.sortOrder,
+            notes: i.notes || null,
+          })),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setPlan(json.data);
+        setIsEditing(false);
+        setSaveMsg('保存成功，草稿内容已更新');
+      } else {
+        setEditError(json.error?.message || '保存失败');
+      }
+    } catch {
+      setEditError('网络错误');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditError('');
+  };
+
   const handleExport = async (format: 'pdf' | 'excel') => {
     if (!plan) return;
     if (!exportAthleteId) { setExportMsg('请先选择运动员'); return; }
-    if (!exportDate) { setExportMsg('请选择导出日期'); return; }
+    // 导出日期 = 计划执行开始日期
+    const exportDate = plan.startDate ? plan.startDate.slice(0, 10) : '';
+    if (!exportDate) { setExportMsg('该计划未设置执行开始日期，无法导出'); return; }
 
     setIsExporting(true);
     setExportMsg('');
@@ -260,12 +459,9 @@ export default function TrainingPlanDetailPage() {
     );
   }
 
-  const groupedItems = weekDays.map((_, idx) => {
-    const dayItems = plan.items
-      .filter(i => i.dayOfWeek === idx + 1)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-    return { day: idx + 1, dayLabel: weekDays[idx], items: dayItems };
-  });
+  const sortedItems = [...plan.items].sort((a, b) => a.sortOrder - b.sortOrder);
+  /** 是否按运动员独立配置（存在任一带 athleteId 的练习项即视为独立配置） */
+  const isIndependent = plan.items.some((i) => i.athleteId != null);
 
   const statusInfo = statusLabels[plan.status] || { label: plan.status, color: 'bg-ams-surface text-ams-text-secondary' };
   const filteredAssignAthletes = allAthletes.filter(a =>
@@ -284,16 +480,22 @@ export default function TrainingPlanDetailPage() {
           <h2 className="text-xl font-semibold text-ams-text-primary">训练计划详情</h2>
         </div>
         <div className="flex items-center gap-2">
+          {plan.status === 'DRAFT' && (
+            <Button size="sm" onClick={handlePublish} disabled={isPublishing}>
+              <Send className="h-4 w-4" />
+              {isPublishing ? '发布中...' : '发布'}
+            </Button>
+          )}
+          {plan.status === 'DRAFT' && (
+            <Button variant="outline" size="sm" onClick={startEdit} disabled={isPublishing}>
+              <Edit2 className="h-4 w-4" />
+              编辑
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={openAssignModal}>
             <UserPlus className="h-4 w-4" />
             分配运动员
           </Button>
-          <Link href={`/training/plans/new`}>
-            <Button variant="outline" size="sm">
-              <Edit2 className="h-4 w-4" />
-              新建副本
-            </Button>
-          </Link>
           <Button variant="outline" size="sm" onClick={handleDeleteClick} className="text-ams-danger border-ams-danger/30 hover:bg-ams-danger/10">
             <Trash2 className="h-4 w-4" />
             删除
@@ -309,7 +511,25 @@ export default function TrainingPlanDetailPage() {
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusInfo.color}`}>
                 {statusInfo.label}
               </span>
+              {plan.status === 'DRAFT' && (
+                <span className="flex items-center gap-1 text-xs text-ams-text-muted">
+                  <Info className="h-3.5 w-3.5" />
+                  草稿尚未发布，发布后按执行时间自动判定为待执行或已执行
+                </span>
+              )}
             </div>
+            {publishMsg && (
+              <div className={`rounded-ams px-3 py-2 text-xs ${
+                publishMsg.includes('成功') ? 'bg-ams-success/10 text-ams-success' : 'bg-ams-danger/10 text-ams-danger'
+              }`}>
+                {publishMsg}
+              </div>
+            )}
+            {saveMsg && (
+              <div className="rounded-ams px-3 py-2 text-xs bg-ams-success/10 text-ams-success">
+                {saveMsg}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="flex items-start gap-2 text-ams-text-secondary">
                 <User className="h-4 w-4 text-ams-text-muted mt-0.5" />
@@ -329,6 +549,15 @@ export default function TrainingPlanDetailPage() {
                 <User className="h-4 w-4 text-ams-text-muted" />
                 <span>教练：{plan.coach.name}</span>
               </div>
+              {plan.startDate && (
+                <div className="flex items-center gap-2 text-ams-text-secondary sm:col-span-2">
+                  <CalendarDays className="h-4 w-4 text-ams-text-muted" />
+                  <span>
+                    执行时间：
+                    {formatExecuteTime(plan.startDate, plan.startTime)}
+                  </span>
+                </div>
+              )}
             </div>
             {plan.goal && (
               <div className="flex items-start gap-2 mt-2 pt-3 border-t border-ams-border">
@@ -344,6 +573,138 @@ export default function TrainingPlanDetailPage() {
         </div>
       </div>
 
+      {/* 草稿编辑区域 */}
+      {isEditing && (
+        <div className="ams-card p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-ams-text-primary">编辑草稿</h3>
+            <span className="text-xs text-ams-text-muted">修改执行时间与练习安排，保存后立即生效</span>
+          </div>
+
+          {/* 执行时间 */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-ams-primary" />
+              <h4 className="text-sm font-medium text-ams-text-primary">训练计划执行时间</h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label className="block text-xs text-ams-text-muted mb-1">开始日期</label>
+                <input
+                  type="date"
+                  value={editForm.startDate}
+                  onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-ams-text-muted mb-1">开始时间</label>
+                <input
+                  type="time"
+                  value={editForm.startTime}
+                  onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 练习安排 */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-ams-text-primary">练习安排</h4>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-ams-text-muted">共 {editItems.length} 个练习</span>
+              </div>
+            </div>
+            {editItems.length === 0 ? (
+              <div className="rounded-ams border border-dashed border-ams-border py-6 text-center text-sm text-ams-text-muted">
+                暂无练习安排，点击各运动员分组下的「添加练习」为计划添加训练项目
+              </div>
+            ) : isSharedItems ? (
+              /* 共享配置（历史数据）：扁平列表，新增练习统一为全员共享 */
+              <div className="space-y-2">
+                {[...editItems].sort((a, b) => a.sortOrder - b.sortOrder).map((item, idx) => (
+                  <PlanItemEditor
+                    key={item.id}
+                    item={item}
+                    index={idx}
+                    total={editItems.length}
+                    onChange={updateEditItem}
+                    onMove={moveEditItem}
+                    onRemove={removeEditItem}
+                  />
+                ))}
+                <div className="flex justify-end pt-1">
+                  <Button type="button" variant="outline" size="sm" onClick={() => openPickerFor(null)}>
+                    <Plus className="h-3 w-3" />
+                    添加练习（全员共享）
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* 独立配置：按运动员分组，完成一名运动员后再显示下一名 */
+              <div className="space-y-4">
+                {plan.planAthletes.map((pa) => {
+                  const groupItems = editItems
+                    .filter((i) => i.athleteId === pa.athlete.id)
+                    .sort((a, b) => a.sortOrder - b.sortOrder);
+                  return (
+                    <div key={pa.athlete.id} className="rounded-ams border border-ams-border/70 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-ams-text-primary">{pa.athlete.name}</span>
+                          <span className="text-xs text-ams-text-muted">{groupItems.length} 个练习</span>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={() => openPickerFor(pa.athlete.id)}>
+                          <Plus className="h-3 w-3" />
+                          添加练习
+                        </Button>
+                      </div>
+                      {groupItems.length === 0 ? (
+                        <div className="rounded-ams border border-dashed border-ams-border py-4 text-center text-xs text-ams-text-muted">
+                          暂未为该运动员配置练习，点击右上角「添加练习」设置
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {groupItems.map((item, idx) => (
+                            <PlanItemEditor
+                              key={item.id}
+                              item={item}
+                              index={idx}
+                              total={groupItems.length}
+                              onChange={updateEditItem}
+                              onMove={moveEditItem}
+                              onRemove={removeEditItem}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {editError && (
+            <div className="rounded-ams border border-ams-danger/30 bg-ams-danger/10 px-4 py-3 text-sm text-ams-danger">
+              {editError}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={cancelEdit} disabled={isSaving}>
+              取消
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
+              <Save className="h-4 w-4" />
+              {isSaving ? '保存中...' : '保存修改'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 导出区域 */}
       <div className="ams-card p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -351,9 +712,9 @@ export default function TrainingPlanDetailPage() {
           <h3 className="text-sm font-semibold text-ams-text-primary">导出训练计划</h3>
         </div>
         <p className="text-xs text-ams-text-muted mb-4">
-          选择运动员和日期，将该运动员在指定日期（按星期几匹配）的训练安排导出为 PDF 或 Excel 文件。
+          选择运动员，将该运动员在本计划中的全部练习安排导出为 PDF 或 Excel 文件（执行日期以计划开始日期为准）。
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
           <div>
             <label className="block text-xs text-ams-text-muted mb-1">运动员 *</label>
             <select
@@ -368,18 +729,9 @@ export default function TrainingPlanDetailPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-ams-text-muted mb-1">日期 *</label>
-            <input
-              type="date"
-              value={exportDate}
-              onChange={(e) => setExportDate(e.target.value)}
-              className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ams-text-muted mb-1">星期（自动识别）</label>
+            <label className="block text-xs text-ams-text-muted mb-1">执行日期（自动识别）</label>
             <div className="px-3 py-2 text-sm text-ams-text-secondary rounded-ams bg-ams-surface border border-ams-border">
-              {exportDate ? weekDays[(new Date(exportDate).getDay() + 6) % 7] : '-'}
+              {plan.startDate ? formatExecuteTime(plan.startDate, null) : '未设置'}
             </div>
           </div>
           <div className="flex gap-2">
@@ -387,7 +739,7 @@ export default function TrainingPlanDetailPage() {
               variant="outline"
               size="sm"
               onClick={() => handleExport('pdf')}
-              disabled={isExporting || !exportAthleteId}
+              disabled={isExporting || !exportAthleteId || !plan.startDate}
             >
               <FileText className="h-4 w-4" />
               PDF
@@ -396,7 +748,7 @@ export default function TrainingPlanDetailPage() {
               variant="outline"
               size="sm"
               onClick={() => handleExport('excel')}
-              disabled={isExporting || !exportAthleteId}
+              disabled={isExporting || !exportAthleteId || !plan.startDate}
             >
               <FileSpreadsheet className="h-4 w-4" />
               Excel
@@ -413,76 +765,52 @@ export default function TrainingPlanDetailPage() {
         )}
       </div>
 
-      {/* 按天展示练习 */}
+      {/* 练习安排 */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-ams-text-primary px-1">练习安排</h3>
+        <h3 className="text-sm font-semibold text-ams-text-primary px-1">
+          练习安排（共 {plan.items.length} 个练习）
+        </h3>
 
-        {groupedItems.map(({ day, dayLabel, items: dayItems }) => (
-          <div key={day} className="ams-card p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-ams-text-primary">{dayLabel}</span>
-              <span className="text-xs text-ams-text-muted">{dayItems.length} 个练习</span>
-            </div>
-
-            {dayItems.length === 0 ? (
-              <p className="text-xs text-ams-text-muted py-4 text-center">当日无安排</p>
-            ) : (
-              <div className="space-y-2">
-                {dayItems.map((item) => (
-                  <div key={item.id} className="rounded-ams border border-ams-border p-3 hover:border-ams-primary/30 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-ams bg-ams-primary/20 text-ams-primary shrink-0">
-                        {categoryIcons[item.exercise.category] || <Dumbbell className="h-4 w-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-ams-text-primary">{item.exercise.name}</span>
-                          <span className="text-xs text-ams-text-muted">{item.exercise.category} · {item.exercise.unit}</span>
-                          {item.exercise.difficulty && (
-                            <span className="rounded-full px-2 py-0.5 text-xs bg-ams-surface-hover text-ams-text-secondary">
-                              {item.exercise.difficulty}
-                            </span>
-                          )}
-                          {item.intensity && (
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${intensityColors[item.intensity] || 'bg-ams-surface text-ams-text-secondary'}`}>
-                              {item.intensity}强度
-                            </span>
-                          )}
-                        </div>
-                        {item.exercise.targetMuscles && (
-                          <p className="text-xs text-ams-text-muted mt-0.5">目标肌群：{item.exercise.targetMuscles}</p>
-                        )}
-                        <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
-                          <span className="text-ams-text-secondary">
-                            <span className="font-medium text-ams-text-primary">{item.sets}</span> 组 × <span className="font-medium text-ams-text-primary">{item.reps}</span> 次
-                          </span>
-                          {item.load !== null && (
-                            <span className="text-ams-text-secondary">
-                              负荷 <span className="font-medium text-ams-text-primary">{item.load}</span> {item.exercise.unit}
-                            </span>
-                          )}
-                          {item.duration !== null && item.duration !== undefined && (
-                            <span className="text-ams-text-secondary">
-                              时长 <span className="font-medium text-ams-text-primary">{item.duration}</span> 分钟
-                            </span>
-                          )}
-                          {item.restSeconds !== null && item.restSeconds !== undefined && (
-                            <span className="text-ams-text-secondary">
-                              间歇 <span className="font-medium text-ams-text-primary">{item.restSeconds}</span> 秒
-                            </span>
-                          )}
-                        </div>
-                        {item.notes && (
-                          <p className="text-xs text-ams-text-muted mt-1 italic">备注：{item.notes}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {plan.items.length === 0 ? (
+          <div className="ams-card p-4">
+            <p className="text-xs text-ams-text-muted py-4 text-center">暂无练习安排</p>
           </div>
-        ))}
+        ) : isIndependent ? (
+          /* 独立配置：按运动员分组连续排列，完成一名运动员的所有练习后再显示下一名 */
+          <div className="space-y-4">
+            {plan.planAthletes.map((pa) => {
+              const athleteItems = plan.items
+                .filter((i) => i.athleteId === pa.athlete.id)
+                .sort((a, b) => a.sortOrder - b.sortOrder);
+              return (
+                <div key={pa.athlete.id} className="ams-card p-4">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <h4 className="text-sm font-semibold text-ams-text-primary">{pa.athlete.name}</h4>
+                    <span className="text-xs text-ams-text-muted">{athleteItems.length} 个练习</span>
+                  </div>
+                  {athleteItems.length === 0 ? (
+                    <p className="text-xs text-ams-text-muted py-3 text-center">该运动员暂无练习安排</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {athleteItems.map((item) => (
+                        <PlanItemRow key={item.id} item={item} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* 共享配置（历史数据）：全员共用同一组练习，扁平展示 */
+          <div className="ams-card p-4">
+            <div className="space-y-2">
+              {sortedItems.map((item) => (
+                <PlanItemRow key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 分配运动员弹窗 */}
@@ -574,6 +902,70 @@ export default function TrainingPlanDetailPage() {
           </div>
         </div>
       )}
+
+      {/* 练习选择器弹窗（草稿编辑） */}
+      {showPicker && (
+        <ExercisePickerModal
+          exercises={exercises}
+          onClose={() => setShowPicker(false)}
+          onSelect={addItemsToPlan}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// 练习项展示卡片：参数统一顺序为 负荷 → 次数 → 时长 → 组数 → 间歇 → 节奏 → 备注
+// ============================================================
+
+function PlanItemRow({ item }: { item: PlanItem }) {
+  const params: { key: string; node: React.ReactNode }[] = [
+    ...(item.load !== null && item.load !== undefined
+      ? [{ key: 'load', node: (<span className="text-ams-text-secondary">负荷 <span className="font-medium text-ams-text-primary">{item.load}</span> {item.exercise.unit}</span>) }]
+      : []),
+    { key: 'reps', node: (<span className="text-ams-text-secondary">次数 <span className="font-medium text-ams-text-primary">{item.reps}</span> 次</span>) },
+    ...(item.duration !== null && item.duration !== undefined
+      ? [{ key: 'duration', node: (<span className="text-ams-text-secondary">时长 <span className="font-medium text-ams-text-primary">{item.duration}</span> 分钟</span>) }]
+      : []),
+    { key: 'sets', node: (<span className="text-ams-text-secondary">组数 <span className="font-medium text-ams-text-primary">{item.sets}</span> 组</span>) },
+    ...(item.restSeconds !== null && item.restSeconds !== undefined
+      ? [{ key: 'restSeconds', node: (<span className="text-ams-text-secondary">间歇 <span className="font-medium text-ams-text-primary">{item.restSeconds}</span> 秒</span>) }]
+      : []),
+    ...(item.tempo
+      ? [{ key: 'tempo', node: (<span className="text-ams-text-secondary">节奏 <span className="font-medium text-ams-text-primary">{item.tempo}</span></span>) }]
+      : []),
+    ...(item.notes
+      ? [{ key: 'notes', node: (<span className="text-ams-text-muted italic">备注：{item.notes}</span>) }]
+      : []),
+  ];
+  // 按统一顺序渲染（数组本身已按顺序构造，此处保持展示顺序）
+  const ordered = [...params].sort((a, b) => PARAM_ORDER.indexOf(a.key as (typeof PARAM_ORDER)[number]) - PARAM_ORDER.indexOf(b.key as (typeof PARAM_ORDER)[number]));
+
+  return (
+    <div className="rounded-ams border border-ams-border p-3 hover:border-ams-primary/30 transition-colors">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-ams bg-ams-primary/20 text-ams-primary shrink-0">
+          {categoryIcons[item.exercise.category] || <Dumbbell className="h-4 w-4" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-ams-text-primary">{item.exercise.name}</span>
+            <span className="text-xs text-ams-text-muted">{item.exercise.category} · {item.exercise.unit}</span>
+            {item.exercise.difficulty && (
+              <span className="rounded-full px-2 py-0.5 text-xs bg-ams-surface-hover text-ams-text-secondary">
+                {item.exercise.difficulty}
+              </span>
+            )}
+          </div>
+          {item.exercise.targetMuscles && (
+            <p className="text-xs text-ams-text-muted mt-0.5">目标肌群：{item.exercise.targetMuscles}</p>
+          )}
+          <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
+            {ordered.map((p) => <span key={p.key}>{p.node}</span>)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

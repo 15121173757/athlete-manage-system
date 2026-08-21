@@ -51,6 +51,21 @@ export function handleRouteError(error: unknown): NextResponse {
     );
   }
   if (error instanceof Error) {
+    // Prisma 已知错误兜底（防御层）：任何删除/更新操作触发外键约束或记录缺失时给出友好提示
+    const prismaCode = (error as { code?: string }).code;
+    if (prismaCode === 'P2003') {
+      // 外键约束失败：可能是删除被引用数据，也可能是创建/更新时引用了不存在的数据
+      return NextResponse.json(
+        { success: false, error: { code: 'FOREIGN_KEY_CONSTRAINT', message: '数据关联异常：操作引用了不存在或已被删除的记录，请刷新页面后重试' } },
+        { status: 400 }
+      );
+    }
+    if (prismaCode === 'P2025') {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: '记录不存在或已被删除' } },
+        { status: 404 }
+      );
+    }
     console.error('[Unhandled Error]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务器内部错误，请稍后重试' } },

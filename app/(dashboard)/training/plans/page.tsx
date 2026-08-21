@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /** 详情页「返回列表」来源记录键 */
@@ -13,6 +13,8 @@ interface TrainingPlan {
   id: number;
   goal: string | null;
   status: string;
+  startDate: string | null;
+  startTime: string | null;
   planAthletes: { athlete: { id: number; name: string } }[];
   coach: { id: number; name: string };
   items: Array<{ id: number }>;
@@ -20,9 +22,24 @@ interface TrainingPlan {
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   DRAFT: { label: '草稿', color: 'text-ams-text-secondary' },
-  PUBLISHED: { label: '已发布', color: 'text-ams-primary' },
-  COMPLETED: { label: '已完成', color: 'text-ams-success' },
+  SCHEDULED: { label: '待执行', color: 'text-ams-primary' },
+  COMPLETED: { label: '已执行', color: 'text-ams-success' },
 };
+
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+/** 执行时间展示格式：YYYY-MM-DD-周X HH:MM（星期按北京时间计算，与 UTC 零点日期一致） */
+function formatExecuteTime(p: { startDate: string | null; startTime: string | null }): string {
+  if (!p.startDate) return '-';
+  const dateStr = p.startDate.slice(0, 10);
+  const weekday = WEEKDAYS[new Date(`${dateStr}T00:00:00.000Z`).getUTCDay()];
+  return `${dateStr}-${weekday} ${p.startTime || ''}`.trim();
+}
+
+/** 今日北京时间日期（YYYY-MM-DD），用于高亮展示今日计划 */
+function getBeijingToday(): string {
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+}
 
 function TrainingPlansContent() {
   const router = useRouter();
@@ -36,6 +53,7 @@ function TrainingPlansContent() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const todayStr = getBeijingToday();
 
   const fetchPlans = useCallback(async () => {
     setIsLoading(true);
@@ -109,8 +127,8 @@ function TrainingPlansContent() {
           >
             <option value="">全部状态</option>
             <option value="DRAFT">草稿</option>
-            <option value="PUBLISHED">已发布</option>
-            <option value="COMPLETED">已完成</option>
+            <option value="SCHEDULED">待执行</option>
+            <option value="COMPLETED">已执行</option>
           </select>
         </div>
       </div>
@@ -130,7 +148,7 @@ function TrainingPlansContent() {
                   <tr className="border-b border-ams-border">
                     <th className="px-4 py-3 text-left ams-table-header">运动员</th>
                     <th className="px-4 py-3 text-left ams-table-header">目标</th>
-                    <th className="px-4 py-3 text-left ams-table-header">项目数</th>
+                    <th className="px-4 py-3 text-left ams-table-header">执行时间</th>
                     <th className="px-4 py-3 text-left ams-table-header">状态</th>
                     <th className="px-4 py-3 text-left ams-table-header">教练</th>
                     <th className="px-4 py-3 text-right ams-table-header">操作</th>
@@ -139,11 +157,17 @@ function TrainingPlansContent() {
                 <tbody>
                   {plans.map((p) => {
                     const s = statusLabels[p.status] || { label: p.status, color: 'text-ams-text-secondary' };
+                    // 今日计划高亮：执行日期为北京时间今天
+                    const isToday = p.startDate ? p.startDate.slice(0, 10) === todayStr : false;
                     return (
                       <tr
                         key={p.id}
                         onClick={(e) => handleRowClick(e, p.id)}
-                        className="cursor-pointer border-b border-ams-border/50 transition-colors duration-150 hover:bg-ams-primary/10"
+                        className={`cursor-pointer border-b border-ams-border/50 transition-colors duration-150 ${
+                          isToday
+                            ? 'border-l-4 border-l-ams-warning bg-ams-warning/20 hover:bg-ams-warning/25'
+                            : 'border-l-4 border-l-transparent hover:bg-ams-primary/10'
+                        }`}
                       >
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
@@ -160,7 +184,17 @@ function TrainingPlansContent() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-ams-text-secondary max-w-[200px] truncate">{p.goal || '-'}</td>
-                        <td className="px-4 py-3 text-ams-text-secondary">{p.items?.length || 0}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-ams-text-secondary">
+                          {isToday && (
+                            <span className="mr-1.5 inline-flex items-center gap-1 rounded-full bg-ams-warning px-2 py-1 text-xs font-bold leading-none text-ams-background">
+                              <CalendarDays className="h-3.5 w-3.5" />
+                              今日
+                            </span>
+                          )}
+                          <span className={isToday ? 'font-semibold text-ams-warning' : undefined}>
+                            {formatExecuteTime(p)}
+                          </span>
+                        </td>
                         <td className={`px-4 py-3 font-medium ${s.color}`}>{s.label}</td>
                         <td className="px-4 py-3 text-ams-text-secondary">{p.coach.name}</td>
                         <td className="px-4 py-3 text-right">
@@ -184,9 +218,17 @@ function TrainingPlansContent() {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-ams-border px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ams-border px-4 py-3">
                 <div className="text-sm text-ams-text-secondary">共 {total} 条</div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => updateQuery({ page: '1' })}
+                  >
+                    回首页
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

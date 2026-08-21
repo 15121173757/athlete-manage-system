@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || undefined;
     const category = searchParams.get('category') || undefined;
     const difficulty = searchParams.get('difficulty') || undefined;
-    const isFavorite = searchParams.get('isFavorite') === 'true';
+    const isFavorite = searchParams.has('isFavorite')
+      ? searchParams.get('isFavorite') === 'true'
+      : undefined;
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '50');
 

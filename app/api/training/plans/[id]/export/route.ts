@@ -1,8 +1,9 @@
 /**
  * 训练计划导出 API —— /api/training/plans/[id]/export
  *
- * GET: 导出指定运动员在特定日期的训练计划
- * ?athleteId=123 (必填) &date=2026-08-05 (必填) &format=pdf|excel (默认 pdf)
+ * GET: 导出指定运动员在本计划中的全部练习安排
+ * ?athleteId=123 (必填) &date=2026-08-05 (必填，用于文件命名/兜底标题) &format=pdf|excel (默认 pdf)
+ * 实际导出的日期以计划执行开始日期（startDate）为准。
  */
 
 import { NextRequest } from 'next/server';

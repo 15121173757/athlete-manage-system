@@ -1,14 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Activity, TrendingUp, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Plus, Activity, TrendingUp, AlertTriangle, ChevronRight, Search, Check, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { riskStyles } from './riskStyles';
 import { LoadBarChart } from './LoadBarChart';
 
 /** 详情页「返回列表」来源记录键：进入运动员负荷详情前保存来源 URL（保留 tab 状态） */
 const LOAD_RETURN_KEY = 'ams-load-return';
+
+/** 运动员选择状态本地存储键（选择记忆） */
+const SELECTION_KEY = 'ams-load-monitor-selected-athletes';
+
+/** 概览默认展示的运动员数量 */
+const DEFAULT_DISPLAY_COUNT = 12;
 
 interface AthleteLoadOverview {
   athleteId: number;
@@ -36,6 +42,7 @@ interface LoadRecord {
 interface Athlete {
   id: number;
   name: string;
+  sport?: string;
 }
 
 /** 进入详情前记录来源 URL，供详情页「返回」恢复 */
@@ -56,9 +63,18 @@ export default function LoadMonitorView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 概览运动员选择状态
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectionInitialized, setSelectionInitialized] = useState(false);
+  const [showSelector, setShowSelector] = useState(false);
+  const [selectorSearch, setSelectorSearch] = useState('');
+  const [teamFilter, setTeamFilter] = useState('');
+
   // 录入弹窗状态
   const [showModal, setShowModal] = useState(false);
   const [formAthlete, setFormAthlete] = useState('');
+  const [formTeamFilter, setFormTeamFilter] = useState('');
+  const [formSearch, setFormSearch] = useState('');
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [formRpe, setFormRpe] = useState<number>(6);
   const [formDuration, setFormDuration] = useState('');
@@ -92,13 +108,50 @@ export default function LoadMonitorView() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // 加载运动员下拉选项
+  // 加载运动员列表（用于选择器与筛选下拉，需覆盖全部运动员）
   useEffect(() => {
-    fetch('/api/athletes?pageSize=100')
+    fetch('/api/athletes?pageSize=1000')
       .then((r) => r.json())
       .then((j) => { if (j.success) setAthletes(j.data.athletes || []); })
       .catch(() => {});
   }, []);
+
+  // 初始化概览运动员选择：优先从本地存储恢复；否则默认「有负荷优先，补足到 12 个」
+  useEffect(() => {
+    if (selectionInitialized) return;
+    if (athletes.length === 0 || isLoading) return;
+
+    // 有效运动员 ID 集合（过滤已删除运动员）
+    const validIds = new Set(athletes.map((a) => a.id));
+
+    // 1. 尝试从本地存储恢复选择
+    try {
+      const raw = localStorage.getItem(SELECTION_KEY);
+      if (raw) {
+        const saved: number[] = JSON.parse(raw);
+        if (Array.isArray(saved)) {
+          const filtered = saved.filter((id) => validIds.has(id));
+          if (filtered.length > 0) {
+            setSelectedIds(filtered);
+            setSelectionInitialized(true);
+            return;
+          }
+        }
+      }
+    } catch {
+      /* 忽略本地存储异常，走默认选择 */
+    }
+
+    // 2. 默认：有负荷记录优先（保持 overview 的 ACWR 降序），不足补无负荷运动员
+    const withLoadIds = overview.map((o) => o.athleteId).filter((id) => validIds.has(id));
+    const withLoadSet = new Set(withLoadIds);
+    const withoutLoadIds = athletes
+      .filter((a) => !withLoadSet.has(a.id))
+      .map((a) => a.id);
+    const defaultIds = [...withLoadIds, ...withoutLoadIds].slice(0, DEFAULT_DISPLAY_COUNT);
+    setSelectedIds(defaultIds);
+    setSelectionInitialized(true);
+  }, [athletes, overview, isLoading, selectionInitialized]);
 
   // ---- 录入负荷 ----
   const handleAdd = async () => {
@@ -144,6 +197,99 @@ export default function LoadMonitorView() {
   const riskCount = (level: AthleteLoadOverview['riskLevel']) =>
     overview.filter((o) => o.riskLevel === level).length;
 
+  // ---- 概览运动员选择 ----
+
+  /** 持久化选择状态到本地存储 */
+  const persistSelection = (ids: number[]) => {
+    try {
+      localStorage.setItem(SELECTION_KEY, JSON.stringify(ids));
+    } catch {
+      /* 忽略本地存储异常 */
+    }
+  };
+
+  // 概览展示数据：将「选中运动员」与「有负荷概览」关联，无负荷者以空占位卡片呈现
+  const overviewMap = useMemo(
+    () => new Map(overview.map((o) => [o.athleteId, o])),
+    [overview]
+  );
+
+  /**
+   * 展示排序规则：有完整 ACWR 数据的运动员优先（按 ACWR 数值降序），
+   * 无 ACWR 数据的运动员统一排在后面（按姓名升序）
+   */
+  const compareForDisplay = useCallback((a: Athlete, b: Athlete) => {
+    const acwrA = overviewMap.get(a.id)?.acwr ?? null;
+    const acwrB = overviewMap.get(b.id)?.acwr ?? null;
+    if (acwrA === null && acwrB === null) return a.name.localeCompare(b.name, 'zh-CN');
+    if (acwrA === null) return 1;
+    if (acwrB === null) return -1;
+    return acwrB - acwrA;
+  }, [overviewMap]);
+
+  // 队伍（运动项目）维度选项：按项目分组统计人数，供选择弹窗筛选
+  const sportOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of athletes) {
+      const s = a.sport || '未登记';
+      counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([sport, count]) => ({ sport, count }))
+      .sort((x, y) => x.sport.localeCompare(y.sport, 'zh-CN'));
+  }, [athletes]);
+
+  // 录入弹窗内运动员选项：队伍筛选 + 姓名搜索组合过滤，按姓名升序（不限训练计划，可选任意运动员）
+  const formAthleteOptions = useMemo(() => {
+    const q = formSearch.trim().toLowerCase();
+    return athletes
+      .filter((a) => !formTeamFilter || (a.sport || '未登记') === formTeamFilter)
+      .filter((a) => !q || a.name.toLowerCase().includes(q))
+      .sort((x, y) => x.name.localeCompare(y.name, 'zh-CN'));
+  }, [athletes, formTeamFilter, formSearch]);
+
+  // 选择弹窗内运动员列表：队伍筛选 + 姓名搜索组合过滤，并按展示排序规则排列
+  const filteredAthletes = useMemo(() => {
+    const q = selectorSearch.trim().toLowerCase();
+    return athletes
+      .filter((a) => !teamFilter || (a.sport || '未登记') === teamFilter)
+      .filter((a) => !q || a.name.toLowerCase().includes(q))
+      .sort(compareForDisplay);
+  }, [athletes, teamFilter, selectorSearch, compareForDisplay]);
+
+  // 已选运动员（按展示排序规则：有 ACWR 数据优先、ACWR 降序，无数据在后）
+  const selectedAthletes = useMemo(
+    () => athletes.filter((a) => selectedIds.includes(a.id)).sort(compareForDisplay),
+    [athletes, selectedIds, compareForDisplay]
+  );
+
+  // 已选运动员中有负荷记录的人数（用于标题反馈）
+  const selectedWithLoadCount = selectedAthletes.filter((a) => overviewMap.has(a.id)).length;
+
+  /** 切换单个运动员的选中状态 */
+  const toggleSelect = (athleteId: number) => {
+    setSelectedIds((prev) => {
+      const next = prev.includes(athleteId)
+        ? prev.filter((id) => id !== athleteId)
+        : [...prev, athleteId];
+      persistSelection(next);
+      return next;
+    });
+  };
+
+  /** 全选：选中当前筛选（队伍 + 搜索）下的全部运动员；无筛选时即全部运动员 */
+  const selectAll = () => {
+    const all = filteredAthletes.map((a) => a.id);
+    setSelectedIds(all);
+    persistSelection(all);
+  };
+
+  /** 清空：取消全部选择 */
+  const clearSelection = () => {
+    setSelectedIds([]);
+    persistSelection([]);
+  };
+
   return (
     <div className="space-y-4">
       {/* 概览统计 */}
@@ -172,32 +318,58 @@ export default function LoadMonitorView() {
 
       {/* 运动员 ACWR 概览卡片 */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-ams-primary" />
             <h3 className="text-sm font-medium text-ams-text-primary">运动员负荷概览（近 28 天）</h3>
+            <span className="rounded-full bg-ams-surface-hover px-2 py-0.5 text-xs text-ams-text-muted">
+              已选 {selectedIds.length} 人 · 有负荷 {selectedWithLoadCount} 人
+            </span>
           </div>
-          <Button size="sm" onClick={() => { setAddMsg(''); setShowModal(true); }}>
-            <Plus className="h-4 w-4" />
-            录入负荷
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowSelector(true)}>
+              <Users className="h-4 w-4" />
+              选择运动员
+            </Button>
+            <Button size="sm" onClick={() => { setAddMsg(''); setFormTeamFilter(''); setFormSearch(''); setFormAthlete(''); setShowModal(true); }}>
+              <Plus className="h-4 w-4" />
+              录入负荷
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
           <div className="ams-card p-8 text-center text-ams-text-secondary">加载中...</div>
         ) : error ? (
           <div className="ams-card p-8 text-center text-ams-danger">{error}</div>
-        ) : overview.length === 0 ? (
+        ) : selectedAthletes.length === 0 ? (
           <div className="ams-card p-10 text-center">
             <Activity className="mx-auto h-10 w-10 text-ams-text-muted" />
-            <p className="mt-3 text-ams-text-secondary">暂无负荷记录</p>
+            <p className="mt-3 text-ams-text-secondary">暂未选择运动员</p>
             <p className="mt-1 text-sm text-ams-text-muted">
-              训练量 = RPE × 训练时长（分钟），请点击右上角「录入负荷」添加运动员训练数据
+              请点击右上角「选择运动员」勾选需要展示负荷概览的运动员
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {overview.map((o) => {
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {selectedAthletes.map((a) => {
+              const o = overviewMap.get(a.id);
+              if (!o) {
+                // 无负荷记录：空占位卡片
+                return (
+                  <div
+                    key={a.id}
+                    className="ams-card flex flex-col items-center justify-center p-6 text-center"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ams-surface-hover text-ams-text-muted">
+                      <Activity className="h-5 w-5" />
+                    </div>
+                    <div className="mt-3 text-sm font-medium text-ams-text-primary">{a.name}</div>
+                    <div className="mt-1 text-xs text-ams-text-muted">暂无负荷记录</div>
+                  </div>
+                );
+              }
+
               const risk = riskStyles[o.riskLevel];
               return (
                 <Link
@@ -351,14 +523,44 @@ export default function LoadMonitorView() {
 
             <div className="mt-4 space-y-4">
               <div>
+                <label className="mb-1 block text-xs text-ams-text-muted">队伍</label>
+                <select
+                  value={formTeamFilter}
+                  onChange={(e) => { setFormTeamFilter(e.target.value); setFormAthlete(''); }}
+                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
+                >
+                  <option value="">全部队伍</option>
+                  {sportOptions.map((s) => (
+                    <option key={s.sport} value={s.sport}>{s.sport}（{s.count}人）</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-ams-text-muted">运动员搜索</label>
+                <input
+                  type="text"
+                  value={formSearch}
+                  onChange={(e) => { setFormSearch(e.target.value); setFormAthlete(''); }}
+                  placeholder="输入姓名快速查找..."
+                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
+                />
+              </div>
+
+              <div>
                 <label className="mb-1 block text-xs text-ams-text-muted">运动员</label>
                 <select
                   value={formAthlete}
                   onChange={(e) => setFormAthlete(e.target.value)}
-                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
+                  disabled={formAthleteOptions.length === 0}
+                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary disabled:opacity-60"
                 >
-                  <option value="">请选择运动员</option>
-                  {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  <option value="">
+                    {formAthleteOptions.length === 0 ? '没有匹配的运动员' : '请选择运动员'}
+                  </option>
+                  {formAthleteOptions.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}{a.sport ? `（${a.sport}）` : ''}</option>
+                  ))}
                 </select>
               </div>
 
@@ -450,6 +652,124 @@ export default function LoadMonitorView() {
                   {isSaving ? '保存中...' : '保存'}
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 选择运动员弹窗 */}
+      {showSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowSelector(false)}>
+          <div
+            className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-ams-lg bg-ams-surface border border-ams-border shadow-ams-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-ams-border px-5 py-4">
+              <div>
+                <h3 className="text-base font-semibold text-ams-text-primary">选择运动员</h3>
+                <p className="mt-0.5 text-xs text-ams-text-muted">
+                  勾选需要展示负荷概览的运动员，当前已选 {selectedIds.length} 人
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSelector(false)}
+                className="text-ams-text-muted hover:text-ams-text-primary"
+                aria-label="关闭"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 队伍筛选 + 搜索 + 批量操作 */}
+            <div className="border-b border-ams-border px-5 py-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  value={teamFilter}
+                  onChange={(e) => setTeamFilter(e.target.value)}
+                  className="rounded-ams border border-ams-border bg-ams-background px-3 py-2 text-sm text-ams-text-primary focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
+                >
+                  <option value="">全部队伍</option>
+                  {sportOptions.map((s) => (
+                    <option key={s.sport} value={s.sport}>
+                      {s.sport}（{s.count}人）
+                    </option>
+                  ))}
+                </select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ams-text-muted" />
+                  <input
+                    type="text"
+                    value={selectorSearch}
+                    onChange={(e) => setSelectorSearch(e.target.value)}
+                    placeholder="搜索运动员姓名..."
+                    className="w-full rounded-ams bg-ams-background border border-ams-border py-2 pl-10 pr-4 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none focus:ring-1 focus:ring-ams-primary"
+                  />
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={selectAll}>
+                  <Check className="h-3.5 w-3.5" />
+                  全选
+                </Button>
+                <Button size="sm" variant="ghost" onClick={clearSelection}>
+                  清空
+                </Button>
+                <span className="ml-auto text-xs text-ams-text-muted">
+                  共 {filteredAthletes.length} 名运动员
+                  {teamFilter && ` · 队伍「${teamFilter}」`}
+                </span>
+              </div>
+            </div>
+
+            {/* 运动员列表（按队伍/搜索筛选，有 ACWR 数据优先排序） */}
+            <div className="ams-scrollbar flex-1 overflow-y-auto px-3 py-2">
+              {filteredAthletes.length === 0 ? (
+                <div className="py-10 text-center text-sm text-ams-text-muted">
+                  没有匹配的运动员
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  {filteredAthletes.map((a) => {
+                    const isSelected = selectedIds.includes(a.id);
+                    const hasLoad = overviewMap.has(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => toggleSelect(a.id)}
+                        className={`flex items-center gap-2 rounded-ams border px-3 py-2 text-left text-sm transition-colors ${
+                          isSelected
+                            ? 'border-ams-primary bg-ams-primary/10 text-ams-text-primary'
+                            : 'border-ams-border text-ams-text-secondary hover:bg-ams-surface-hover'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            isSelected
+                              ? 'border-ams-primary bg-ams-primary text-white'
+                              : 'border-ams-border'
+                          }`}
+                        >
+                          {isSelected && <Check className="h-3 w-3" />}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{a.name}</span>
+                        {hasLoad && (
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ams-success" title="有负荷记录" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-ams-border px-5 py-4">
+              <Button variant="outline" size="sm" onClick={() => setShowSelector(false)}>
+                取消
+              </Button>
+              <Button size="sm" onClick={() => setShowSelector(false)}>
+                完成
+              </Button>
             </div>
           </div>
         </div>

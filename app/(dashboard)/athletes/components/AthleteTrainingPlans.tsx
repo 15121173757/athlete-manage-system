@@ -25,14 +25,14 @@ interface TrainingPlan {
 
 const statusBadge: Record<string, string> = {
   DRAFT: 'bg-ams-surface-hover text-ams-text-secondary',
-  PUBLISHED: 'bg-ams-primary/10 text-ams-primary',
+  SCHEDULED: 'bg-ams-primary/10 text-ams-primary',
   COMPLETED: 'bg-ams-success/10 text-ams-success',
 };
 
 const statusLabels: Record<string, string> = {
   DRAFT: '草稿',
-  PUBLISHED: '已发布',
-  COMPLETED: '已完成',
+  SCHEDULED: '待执行',
+  COMPLETED: '已执行',
 };
 
 function formatDate(iso: string): string {

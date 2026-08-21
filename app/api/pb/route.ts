@@ -41,7 +41,22 @@ export async function GET(request: NextRequest) {
       throw new ValidationError('无效的项目ID');
     }
 
-    const result = await listPersonalBests({ athleteId, exerciseId, category, page, pageSize });
+    // 多条件排序：sort=字段:方向，重复参数表示排序优先级（先出现的为主排序）
+    const sortFields = ['athlete', 'exercise', 'category', 'value'] as const;
+    const sortDirections = ['asc', 'desc'] as const;
+    const sorts = searchParams
+      .getAll('sort')
+      .map((s) => {
+        const [field, direction] = s.split(':');
+        return { field, direction };
+      })
+      .filter(
+        (s): s is { field: (typeof sortFields)[number]; direction: (typeof sortDirections)[number] } =>
+          (sortFields as readonly string[]).includes(s.field) &&
+          (sortDirections as readonly string[]).includes(s.direction)
+      );
+
+    const result = await listPersonalBests({ athleteId, exerciseId, category, page, pageSize, sorts });
     return Response.json({ success: true, data: result });
   } catch (error) {
     return handleRouteError(error);

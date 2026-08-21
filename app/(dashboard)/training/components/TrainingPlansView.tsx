@@ -12,6 +12,8 @@ const PLAN_RETURN_KEY = 'ams-plan-list-return';
 interface TrainingPlan {
   id: number;
   goal: string | null;
+  startDate: string | null;
+  startTime: string | null;
   status: string;
   planAthletes: { athlete: { id: number; name: string } }[];
   coach: { id: number; name: string };
@@ -20,9 +22,19 @@ interface TrainingPlan {
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   DRAFT: { label: '草稿', color: 'text-ams-text-secondary' },
-  PUBLISHED: { label: '已发布', color: 'text-ams-primary' },
-  COMPLETED: { label: '已完成', color: 'text-ams-success' },
+  SCHEDULED: { label: '待执行', color: 'text-ams-primary' },
+  COMPLETED: { label: '已执行', color: 'text-ams-success' },
 };
+
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+/** 执行时间展示格式：YYYY-MM-DD-周X HH:MM（星期按北京时间计算，与 UTC 零点日期一致） */
+function formatExecuteTime(p: { startDate: string | null; startTime: string | null }): string {
+  if (!p.startDate) return '-';
+  const dateStr = p.startDate.slice(0, 10);
+  const weekday = WEEKDAYS[new Date(`${dateStr}T00:00:00.000Z`).getUTCDay()];
+  return `${dateStr}-${weekday} ${p.startTime || ''}`.trim();
+}
 
 export default function TrainingPlansView() {
   const router = useRouter();
@@ -110,8 +122,8 @@ export default function TrainingPlansView() {
           >
             <option value="">全部状态</option>
             <option value="DRAFT">草稿</option>
-            <option value="PUBLISHED">已发布</option>
-            <option value="COMPLETED">已完成</option>
+            <option value="SCHEDULED">待执行</option>
+            <option value="COMPLETED">已执行</option>
           </select>
         </div>
       </div>
@@ -131,7 +143,7 @@ export default function TrainingPlansView() {
                   <tr className="border-b border-ams-border">
                     <th className="px-4 py-3 text-left ams-table-header">运动员</th>
                     <th className="px-4 py-3 text-left ams-table-header">目标</th>
-                    <th className="px-4 py-3 text-left ams-table-header">项目数</th>
+                    <th className="px-4 py-3 text-left ams-table-header">执行时间</th>
                     <th className="px-4 py-3 text-left ams-table-header">状态</th>
                     <th className="px-4 py-3 text-left ams-table-header">教练</th>
                     <th className="px-4 py-3 text-right ams-table-header">操作</th>
@@ -160,8 +172,10 @@ export default function TrainingPlansView() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-ams-text-secondary max-w-[200px] truncate">{p.goal || '-'}</td>
-                        <td className="px-4 py-3 text-ams-text-secondary">{p.items?.length || 0}</td>
+                        <td className="px-4 py-3 text-ams-text-secondary max-w-[220px]">
+                          <div className="truncate">{p.goal || '-'}</div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-ams-text-secondary">{formatExecuteTime(p)}</td>
                         <td className={`px-4 py-3 font-medium ${s.color}`}>{s.label}</td>
                         <td className="px-4 py-3 text-ams-text-secondary">{p.coach.name}</td>
                         <td className="px-4 py-3 text-right">
@@ -185,9 +199,17 @@ export default function TrainingPlansView() {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-ams-border px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ams-border px-4 py-3">
                 <div className="text-sm text-ams-text-secondary">共 {total} 条</div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => updateQuery({ page: '1' })}
+                  >
+                    回首页
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

@@ -12,8 +12,9 @@
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { prisma } from '@/lib/db/prisma';
-import { GenderLabels, AthleteStatusLabels } from '@/types';
+import { GenderLabels } from '@/types';
 import { applyCNFont, CN_FONT_NAME } from '@/lib/utils/cnPdfFont';
+import { NotFoundError, ValidationError } from '@/lib/errors/ErrorPresenter';
 
 // ============================================================
 // 导出运动员列表为 Excel
@@ -33,7 +34,6 @@ export async function exportAthletesToExcel(): Promise<Buffer> {
     '项目': a.sport,
     '位置': a.position ?? '',
     '入队日期': a.joinDate.toISOString().split('T')[0],
-    '状态': AthleteStatusLabels[a.status as keyof typeof AthleteStatusLabels] || a.status,
   }));
 
   const ws = XLSX.utils.json_to_sheet(data);
@@ -41,7 +41,7 @@ export async function exportAthletesToExcel(): Promise<Buffer> {
   // 设置列宽
   ws['!cols'] = [
     { wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 8 }, { wch: 8 },
-    { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 8 },
+    { wch: 12 }, { wch: 10 }, { wch: 12 },
   ];
 
   const wb = XLSX.utils.book_new();
@@ -156,7 +156,6 @@ export async function exportAthleteProfilePDF(athleteId: number): Promise<Buffer
     ['运动项目', athlete.sport],
     ['位置', athlete.position || '无'],
     ['入队日期', athlete.joinDate.toISOString().split('T')[0]],
-    ['状态', athlete.status === 'ACTIVE' ? '在队' : athlete.status === 'RECOVERING' ? '休养' : '离队'],
   ];
 
   for (const [label, value] of info) {
@@ -299,29 +298,35 @@ export async function exportTrainingPlanForAthlete(
     include: {
       items: {
         include: { exercise: true },
-        orderBy: [{ dayOfWeek: 'asc' }, { sortOrder: 'asc' }],
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       },
       planAthletes: { include: { athlete: true } },
       coach: { select: { name: true } },
     },
   });
 
-  if (!plan) throw new Error('训练计划不存在');
+  if (!plan) throw new NotFoundError('训练计划不存在');
 
   const athlete = plan.planAthletes.find((pa) => pa.athleteId === athleteId)?.athlete;
-  if (!athlete) throw new Error('该运动员未被分配到此训练计划');
+  if (!athlete) throw new NotFoundError('该运动员未被分配到此训练计划');
 
-  const targetDate = new Date(dateStr);
-  if (isNaN(targetDate.getTime())) throw new Error('日期格式无效');
+  // 导出日期以计划执行开始日期为准（缺失时回退到调用方传入的日期）
+  const planDateStr = plan.startDate ? plan.startDate.toISOString().slice(0, 10) : dateStr;
+  const targetDate = new Date(`${planDateStr}T00:00:00.000Z`);
+  if (isNaN(targetDate.getTime())) throw new ValidationError('日期格式无效');
   const targetDayOfWeek = getDayOfWeek(targetDate);
 
-  // 过滤出目标日期（星期几）对应的训练项
-  const dayItems = plan.items.filter((i) => i.dayOfWeek === targetDayOfWeek);
+  // 只导出目标运动员的练习安排：
+  // - 独立配置（item.athleteId 非空）：仅保留该运动员的练习项，避免把其他运动员的练习导给同一个人
+  // - 共享配置（item.athleteId 为空，历史数据兼容）：全员共用同一组练习，全部保留
+  const dayItems = plan.items.filter(
+    (it) => it.athleteId == null || it.athleteId === athleteId
+  );
 
   if (format === 'excel') {
-    return buildTrainingPlanExcel(plan, athlete, dateStr, weekDayLabels[targetDayOfWeek - 1], dayItems);
+    return buildTrainingPlanExcel(plan, athlete, planDateStr, weekDayLabels[targetDayOfWeek - 1], dayItems);
   }
-  return buildTrainingPlanPDF(plan, athlete, dateStr, weekDayLabels[targetDayOfWeek - 1], dayItems);
+  return buildTrainingPlanPDF(plan, athlete, planDateStr, weekDayLabels[targetDayOfWeek - 1], dayItems);
 }
 
 // ============================================================
@@ -340,7 +345,7 @@ function buildTrainingPlanExcel(
     load: number | null;
     restSeconds: number | null;
     duration: number | null;
-    intensity: string | null;
+    tempo: string | null;
     notes: string | null;
   }>
 ): Buffer {
@@ -358,25 +363,25 @@ function buildTrainingPlanExcel(
   const wsSummary = XLSX.utils.json_to_sheet(summary);
   wsSummary['!cols'] = [{ wch: 16 }, { wch: 50 }];
 
-  // 训练内容明细
+  // 训练内容明细（参数统一顺序：负荷 → 次数 → 时长 → 组数 → 间歇 → 节奏 → 备注）
   const detail = items.map((it, idx) => ({
     '序号': idx + 1,
     '训练项目': it.exercise.name,
     '分类': it.exercise.category,
-    '组数': it.sets,
-    '次数': it.reps,
     '负荷': it.load ?? '',
     '单位': it.exercise.unit,
+    '次数': it.reps,
     '时长(分钟)': it.duration ?? '',
-    '强度': it.intensity ?? '',
+    '组数': it.sets,
     '间歇(秒)': it.restSeconds ?? '',
-    '注意事项': it.notes ?? '',
+    '节奏': it.tempo ?? '',
+    '备注': it.notes ?? '',
   }));
 
   const wsDetail = XLSX.utils.json_to_sheet(detail);
   wsDetail['!cols'] = [
-    { wch: 6 }, { wch: 16 }, { wch: 10 }, { wch: 6 }, { wch: 6 },
-    { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 30 },
+    { wch: 6 }, { wch: 16 }, { wch: 10 }, { wch: 8 }, { wch: 8 },
+    { wch: 6 }, { wch: 10 }, { wch: 6 }, { wch: 10 }, { wch: 12 }, { wch: 30 },
   ];
 
   const wb = XLSX.utils.book_new();
@@ -397,9 +402,6 @@ const PDF_COLORS = {
   primaryDark: [22, 68, 120],  // 深蓝(深) #164478
   primaryLight: [46, 124, 196],// 亮蓝 #2E7CC4
   accent: [232, 131, 58],      // 活力橙 #E8833A
-  green: [46, 139, 87],        // 低强度 #2E8B57
-  orange: [217, 130, 43],      // 中强度 #D9822B
-  red: [192, 57, 43],          // 高强度 #C0392B
   bg: [244, 246, 249],         // 页面浅灰 #F4F6F9
   bgCard: [247, 250, 253],     // 卡片浅蓝 #F7FAFD
   bgNote: [255, 249, 231],     // 备注浅黄 #FFF9E7
@@ -418,14 +420,6 @@ function pdfSetFillColor(doc: jsPDF, c: readonly number[]) {
 }
 function pdfSetDrawColor(doc: jsPDF, c: readonly number[]) {
   doc.setDrawColor(c[0], c[1], c[2]);
-}
-
-/** 强度 → 状态色 */
-function pdfIntensityColor(intensity: string | null): readonly number[] {
-  if (intensity === '高') return PDF_COLORS.red;
-  if (intensity === '中') return PDF_COLORS.orange;
-  if (intensity === '低') return PDF_COLORS.green;
-  return PDF_COLORS.textSub;
 }
 
 /** 页眉：顶部品牌色带 + 标题行（在每页内容绘制前调用） */
@@ -508,7 +502,7 @@ function buildTrainingPlanPDF(
     load: number | null;
     restSeconds: number | null;
     duration: number | null;
-    intensity: string | null;
+    tempo: string | null;
     notes: string | null;
   }>
 ): Buffer {
@@ -610,15 +604,16 @@ function buildTrainingPlanPDF(
     doc.text('该日暂无训练安排。', pageWidth / 2, y + 14, { align: 'center' });
     y += 32;
   } else {
-    // ---- 训练内容表格 ----
+    // ---- 训练内容表格（参数统一顺序：负荷 → 次数 → 时长 → 组数 → 间歇 → 节奏）----
     const cols = [
       { x: marginX + 4, w: 9, label: '#' },
-      { x: 0, w: 42, label: '训练项目' },
-      { x: 0, w: 24, label: '组 × 次' },
+      { x: 0, w: 38, label: '训练项目' },
       { x: 0, w: 24, label: '负荷' },
-      { x: 0, w: 22, label: '时长' },
-      { x: 0, w: 26, label: '强度' },
-      { x: 0, w: 21, label: '间歇' },
+      { x: 0, w: 18, label: '次数' },
+      { x: 0, w: 20, label: '时长' },
+      { x: 0, w: 14, label: '组数' },
+      { x: 0, w: 20, label: '间歇' },
+      { x: 0, w: 24, label: '节奏' },
     ];
     let accX = marginX + 13;
     cols.slice(1).forEach((c) => { c.x = accX; accX += c.w; });
@@ -663,22 +658,20 @@ function buildTrainingPlanPDF(
       pdfSetTextColor(doc, PDF_COLORS.textMain);
       applyCNFont(doc, 'bold');
       doc.text(it.exercise.name.substring(0, 14), cols[1].x, y);
-      // 组 × 次
-      applyCNFont(doc, 'normal');
-      doc.text(`${it.sets} × ${it.reps}`, cols[2].x, y);
       // 负荷
-      doc.text(it.load != null ? `${it.load}${it.exercise.unit}` : '-', cols[3].x, y);
+      applyCNFont(doc, 'normal');
+      doc.text(it.load != null ? `${it.load}${it.exercise.unit}` : '-', cols[2].x, y);
+      // 次数
+      doc.text(String(it.reps), cols[3].x, y);
       // 时长
       doc.text(it.duration ? `${it.duration} 分钟` : '-', cols[4].x, y);
-      // 强度（彩色圆点 + 文字）
-      const ic = pdfIntensityColor(it.intensity);
-      pdfSetFillColor(doc, ic);
-      doc.circle(cols[5].x + 1.6, y - 1.7, 1.1, 'F');
-      pdfSetTextColor(doc, ic);
-      doc.text(it.intensity || '未定', cols[5].x + 5, y);
+      // 组数
+      doc.text(String(it.sets), cols[5].x, y);
       // 间歇
-      pdfSetTextColor(doc, PDF_COLORS.textMain);
       doc.text(it.restSeconds ? `${it.restSeconds} 秒` : '-', cols[6].x, y);
+      // 节奏（自由文本）
+      pdfSetTextColor(doc, PDF_COLORS.textSub);
+      doc.text(it.tempo || '-', cols[7].x, y);
 
       y += rowH;
 
@@ -707,10 +700,9 @@ function buildTrainingPlanPDF(
     pdfSectionTitle(doc, marginX, y + 4, '训练统计');
     y += 14;
 
-    const cardW = (contentW - 6) / 2;
+    // 训练量概览卡（整行宽度，2×2 指标格）
+    const cardW = contentW;
     const chartTop = y;
-
-    // 左卡：训练量概览（2×2 指标格）
     pdfSetFillColor(doc, PDF_COLORS.bgCard);
     pdfSetDrawColor(doc, PDF_COLORS.border);
     doc.setLineWidth(0.3);
@@ -723,19 +715,24 @@ function buildTrainingPlanPDF(
     const totalDuration = items.reduce((s, i) => s + (i.duration || 0), 0);
     const totalSets = items.reduce((s, i) => s + i.sets, 0);
     const totalReps = items.reduce((s, i) => s + i.reps, 0);
+    const withTempo = items.filter((i) => i.tempo).length;
     const metrics: Array<[string, string]> = [
       ['练习项数', `${items.length} 项`],
       ['预计总时长', `${totalDuration} 分钟`],
       ['总组数', `${totalSets} 组`],
       ['总次数', `${totalReps} 次`],
+      ['配置节奏', `${withTempo} 项`],
+      ['配置负荷', `${items.filter((i) => i.load != null).length} 项`],
+      ['平均间歇', `${items.length > 0 ? Math.round(items.reduce((s, i) => s + (i.restSeconds || 0), 0) / items.length) : 0} 秒`],
+      ['计划编号', `#${plan.id}`],
     ];
     const gx = marginX + 7;
     const gy = chartTop + 16;
-    const cellW = (cardW - 14) / 2;
+    const cellW = (cardW - 14) / 4;
     const cellH = 10;
     metrics.forEach(([label, value], i) => {
-      const cx = gx + (i % 2) * cellW;
-      const cy = gy + Math.floor(i / 2) * cellH;
+      const cx = gx + (i % 4) * cellW;
+      const cy = gy + Math.floor(i / 4) * cellH;
       pdfSetTextColor(doc, PDF_COLORS.textSub);
       applyCNFont(doc, 'normal');
       doc.setFontSize(7.5);
@@ -744,53 +741,6 @@ function buildTrainingPlanPDF(
       applyCNFont(doc, 'bold');
       doc.setFontSize(11.5);
       doc.text(value, cx, cy + 9);
-    });
-
-    // 右卡：训练强度分布条形图
-    const chartX = marginX + cardW + 6;
-    pdfSetFillColor(doc, PDF_COLORS.bgCard);
-    pdfSetDrawColor(doc, PDF_COLORS.border);
-    doc.roundedRect(chartX, chartTop, cardW, 40, 2, 2, 'FD');
-    pdfSetTextColor(doc, PDF_COLORS.textMain);
-    applyCNFont(doc, 'bold');
-    doc.setFontSize(10);
-    doc.text('训练强度分布', chartX + 7, chartTop + 9);
-
-    const counts: Record<string, number> = { 低: 0, 中: 0, 高: 0 };
-    items.forEach((i) => {
-      if (i.intensity && counts[i.intensity[0]] !== undefined) counts[i.intensity[0]]++;
-    });
-    const maxCount = Math.max(counts['低'], counts['中'], counts['高'], 1);
-    const levels: Array<{ key: string; label: string; color: readonly number[] }> = [
-      { key: '低', label: '低强度', color: PDF_COLORS.green },
-      { key: '中', label: '中强度', color: PDF_COLORS.orange },
-      { key: '高', label: '高强度', color: PDF_COLORS.red },
-    ];
-    const barX = chartX + 8;
-    const trackX = barX + 22;
-    const barTrackW = cardW - 44;
-    const barH = 4;
-    let by = chartTop + 18;
-    levels.forEach((lv) => {
-      pdfSetTextColor(doc, PDF_COLORS.textSub);
-      applyCNFont(doc, 'normal');
-      doc.setFontSize(8);
-      doc.text(lv.label, barX, by);
-      // 轨道
-      pdfSetFillColor(doc, PDF_COLORS.bg);
-      doc.roundedRect(trackX, by - 2.8, barTrackW, barH, 2, 2, 'F');
-      // 填充（按数量比例）
-      const ratio = counts[lv.key] / maxCount;
-      if (ratio > 0) {
-        pdfSetFillColor(doc, lv.color);
-        doc.roundedRect(trackX, by - 2.8, Math.max(barTrackW * ratio, 5), barH, 2, 2, 'F');
-      }
-      // 数值
-      pdfSetTextColor(doc, PDF_COLORS.textMain);
-      applyCNFont(doc, 'bold');
-      doc.setFontSize(8.5);
-      doc.text(`${counts[lv.key]} 项`, trackX + barTrackW + 2, by);
-      by += 10.5;
     });
 
     y = chartTop + 46;

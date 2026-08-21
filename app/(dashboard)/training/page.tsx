@@ -2,10 +2,9 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ClipboardList, Dumbbell, FileText } from 'lucide-react';
+import { ClipboardList, ClipboardCheck } from 'lucide-react';
 import TrainingPlansView from './components/TrainingPlansView';
-import ExercisesView from './components/ExercisesView';
-import TrainingRecordsView from './components/TrainingRecordsView';
+import AttendanceView from './components/AttendanceView';
 
 function TrainingModuleContent() {
   const router = useRouter();
@@ -21,8 +20,7 @@ function TrainingModuleContent() {
 
   const tabs = [
     { id: 'plans', label: '训练计划', icon: ClipboardList },
-    { id: 'records', label: '训练记录', icon: FileText },
-    { id: 'exercises', label: '练习库', icon: Dumbbell },
+    { id: 'records', label: '出勤管理', icon: ClipboardCheck },
   ];
 
   return (
@@ -53,8 +51,7 @@ function TrainingModuleContent() {
         {/* Tab Content */}
         <div className="min-h-[400px]">
           {activeTab === 'plans' && <TrainingPlansView />}
-          {activeTab === 'exercises' && <ExercisesView />}
-          {activeTab === 'records' && <TrainingRecordsView />}
+          {activeTab === 'records' && <AttendanceView />}
         </div>
       </div>
     </div>

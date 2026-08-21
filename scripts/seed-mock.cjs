@@ -66,12 +66,12 @@ async function main() {
   const daysAgo = (n) => new Date(now.getTime() - n * 24 * 60 * 60 * 1000);
 
   const athletesData = [
-    { name: '张伟', gender: 'MALE', sport: '田径', position: '短跑', status: 'ACTIVE', birthDate: '2000-03-15', height: 182, weight: 75 },
-    { name: '李娜', gender: 'FEMALE', sport: '游泳', position: '自由泳', status: 'RECOVERING', birthDate: '2001-07-22', height: 170, weight: 60 },
-    { name: '王强', gender: 'MALE', sport: '篮球', position: '后卫', status: 'ACTIVE', birthDate: '1999-11-08', height: 195, weight: 85 },
-    { name: '赵敏', gender: 'FEMALE', sport: '体操', position: '全能', status: 'ACTIVE', birthDate: '2002-01-30', height: 160, weight: 48 },
-    { name: '孙磊', gender: 'MALE', sport: '举重', position: '85kg级', status: 'ACTIVE', birthDate: '1998-05-12', height: 175, weight: 85 },
-    { name: '周婷', gender: 'FEMALE', sport: '排球', position: '主攻', status: 'ACTIVE', birthDate: '2000-09-18', height: 188, weight: 72 },
+    { name: '张伟', gender: 'MALE', sport: '田径', position: '短跑', birthDate: '2000-03-15', height: 182, weight: 75 },
+    { name: '李娜', gender: 'FEMALE', sport: '游泳', position: '自由泳', birthDate: '2001-07-22', height: 170, weight: 60 },
+    { name: '王强', gender: 'MALE', sport: '篮球', position: '后卫', birthDate: '1999-11-08', height: 195, weight: 85 },
+    { name: '赵敏', gender: 'FEMALE', sport: '体操', position: '全能', birthDate: '2002-01-30', height: 160, weight: 48 },
+    { name: '孙磊', gender: 'MALE', sport: '举重', position: '85kg级', birthDate: '1998-05-12', height: 175, weight: 85 },
+    { name: '周婷', gender: 'FEMALE', sport: '排球', position: '主攻', birthDate: '2000-09-18', height: 188, weight: 72 },
   ];
 
   const athletes = [];
@@ -86,7 +86,6 @@ async function main() {
         sport: a.sport,
         position: a.position,
         joinDate: daysAgo(365),
-        status: a.status,
       },
     });
     athletes.push(athlete);

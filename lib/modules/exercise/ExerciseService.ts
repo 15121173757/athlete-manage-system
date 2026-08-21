@@ -8,6 +8,8 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { BusinessError } from '@/lib/errors/ErrorPresenter';
+import { EXERCISE_CATEGORIES } from '@/lib/exercise/track-types';
 
 export interface ListExercisesParams {
   search?: string;
@@ -31,6 +33,7 @@ export interface CreateExerciseInput {
   isFavorite?: boolean;
   sortOrder?: number;
   isPBTrackable?: boolean;
+  trackType?: string;
 }
 
 export interface UpdateExerciseInput extends Partial<CreateExerciseInput> {}
@@ -108,17 +111,34 @@ export async function updateExercise(id: number, data: UpdateExerciseInput) {
 // ============================================================
 
 export async function deleteExercise(id: number) {
-  // 检查是否有关联数据
-  const [planItemCount, recordCount] = await Promise.all([
+  // 检查是否有关联数据：训练计划项 / 训练记录 / 个人纪录（PB）
+  const [planItemCount, recordCount, pbCount] = await Promise.all([
     prisma.trainingPlanItem.count({ where: { exerciseId: id } }),
     prisma.trainingRecord.count({ where: { exerciseId: id } }),
+    prisma.personalBest.count({ where: { exerciseId: id } }),
   ]);
 
-  if (planItemCount > 0 || recordCount > 0) {
-    throw new Error(`该练习已被 ${planItemCount} 个计划项和 ${recordCount} 条训练记录引用，无法删除`);
+  if (planItemCount > 0 || recordCount > 0 || pbCount > 0) {
+    const refs: string[] = [];
+    if (planItemCount > 0) refs.push(`${planItemCount} 个训练计划项`);
+    if (recordCount > 0) refs.push(`${recordCount} 条训练记录`);
+    if (pbCount > 0) refs.push(`${pbCount} 条个人纪录（PB）`);
+    throw new BusinessError(
+      'EXERCISE_IN_USE',
+      `该练习已被 ${refs.join('、')} 引用，无法删除。请先移除相关引用后再试`,
+      400
+    );
   }
 
-  return prisma.exercise.delete({ where: { id } });
+  try {
+    return await prisma.exercise.delete({ where: { id } });
+  } catch (error) {
+    // 防御：若存在其他外键引用导致删除失败（如新增关联表），转换为友好业务提示
+    if (error instanceof Error && (error as { code?: string }).code === 'P2003') {
+      throw new BusinessError('EXERCISE_IN_USE', '该练习正被其他数据引用，无法删除', 400);
+    }
+    throw error;
+  }
 }
 
 // ============================================================
@@ -139,11 +159,7 @@ export async function toggleFavorite(id: number) {
 // 获取所有分类（用于筛选下拉）
 // ============================================================
 
-export async function listCategories() {
-  const result = await prisma.exercise.findMany({
-    select: { category: true },
-    distinct: ['category'],
-    orderBy: { category: 'asc' },
-  });
-  return result.map((r) => r.category);
+export async function listCategories(): Promise<string[]> {
+  // 分类为 8 个标准类别，统一由常量模块管理（数据库层面由校验约束）
+  return [...EXERCISE_CATEGORIES];
 }

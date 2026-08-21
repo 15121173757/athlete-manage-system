@@ -188,7 +188,7 @@ model FitnessTest {
   equipment         String?
   demoVideoUrl      String?
   diagramUrl        String?
-  scoringStandard   String?
+  standards         String?
   referenceRange    String?
   precautions       String?
   createdAt         DateTime @default(now())

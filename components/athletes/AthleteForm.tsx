@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Gender, AthleteStatus } from '@/types';
+import { Gender } from '@/types';
 
 export interface AthleteFormData {
   name: string;
@@ -13,7 +13,6 @@ export interface AthleteFormData {
   sport: string;
   position: string;
   joinDate: string;
-  status: AthleteStatus;
 }
 
 interface AthleteFormProps {
@@ -31,7 +30,6 @@ const defaultData: AthleteFormData = {
   sport: '',
   position: '',
   joinDate: new Date().toISOString().split('T')[0],
-  status: AthleteStatus.ACTIVE,
 };
 
 export function AthleteForm({ initialData, onSubmit, isLoading }: AthleteFormProps) {
@@ -170,19 +168,6 @@ export function AthleteForm({ initialData, onSubmit, isLoading }: AthleteFormPro
             className={inputClass}
           />
           {errors.joinDate && <p className={errorClass}>{errors.joinDate}</p>}
-        </div>
-
-        <div>
-          <label className={labelClass}>状态</label>
-          <select
-            value={form.status}
-            onChange={(e) => handleChange('status', e.target.value as AthleteStatus)}
-            className={inputClass}
-          >
-            <option value={AthleteStatus.ACTIVE}>在队</option>
-            <option value={AthleteStatus.RECOVERING}>休养</option>
-            <option value={AthleteStatus.LEFT}>离队</option>
-          </select>
         </div>
       </div>
 

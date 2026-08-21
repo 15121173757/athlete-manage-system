@@ -53,10 +53,11 @@ export async function POST(request: Request) {
         success: true,
         data: {
           user: {
-            id: user.id,
+            userId: user.id,
             username: user.username,
             name: user.name,
             role: user.role as UserRole,
+            isActive: user.isActive,
           },
         },
       },

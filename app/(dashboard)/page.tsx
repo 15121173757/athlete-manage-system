@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, ClipboardList, Dumbbell, CalendarDays, ArrowRight } from 'lucide-react';
+import { Users, ClipboardList, ClipboardCheck, CalendarDays, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuickActionsCard } from './components/QuickActionsCard';
 import { AcwrRiskCard } from './components/AcwrRiskCard';
@@ -30,7 +30,7 @@ export default function DashboardPage() {
       try {
         const [athletesRes, plansRes, todayRes] = await Promise.all([
           fetch('/api/athletes?pageSize=1'),
-          fetch('/api/training/plans?pageSize=1&status=PUBLISHED'),
+          fetch('/api/training/plans?pageSize=1&status=SCHEDULED'),
           fetch('/api/training/plans/today'),
         ]);
         const athletesJson = await athletesRes.json();
@@ -65,7 +65,7 @@ export default function DashboardPage() {
     {
       label: '运动员总数',
       value: stats.totalAthletes,
-      desc: '在队 + 休养 + 离队',
+      desc: '全部在册运动员',
       icon: Users,
       color: 'text-ams-primary',
       bgColor: 'bg-ams-primary/10',
@@ -81,19 +81,19 @@ export default function DashboardPage() {
       link: '/training/today-plans',
     },
     {
-      label: '已发布计划',
+      label: '待执行计划',
       value: stats.publishedPlans,
-      desc: '进行中的训练计划',
+      desc: '已创建待执行的训练计划',
       icon: ClipboardList,
       color: 'text-ams-warning',
       bgColor: 'bg-ams-warning/10',
       link: '/training/plans',
     },
     {
-      label: '待处理记录',
+      label: '出勤管理',
       value: stats.pendingRecords || '-',
-      desc: '待审核训练记录',
-      icon: Dumbbell,
+      desc: '运动员出勤记录管理',
+      icon: ClipboardCheck,
       color: 'text-ams-text-primary',
       bgColor: 'bg-ams-text-muted/10',
       link: '/training/records',
