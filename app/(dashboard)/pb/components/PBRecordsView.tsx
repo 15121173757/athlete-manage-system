@@ -88,6 +88,7 @@ interface PersonalBest {
 interface Athlete {
   id: number;
   name: string;
+  sport: string;
 }
 
 interface Exercise {
@@ -107,6 +108,7 @@ export default function PBRecordsView() {
   const [error, setError] = useState<string | null>(null);
 
   // 筛选
+  const [teamFilter, setTeamFilter] = useState('');
   const [athleteFilter, setAthleteFilter] = useState('');
   const [exerciseFilter, setExerciseFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -135,6 +137,7 @@ export default function PBRecordsView() {
     setError(null);
     try {
       const params = new URLSearchParams({ page: String(page), pageSize: '20' });
+      if (teamFilter) params.set('team', teamFilter);
       if (athleteFilter) params.set('athleteId', athleteFilter);
       if (exerciseFilter) params.set('exerciseId', exerciseFilter);
       if (categoryFilter) params.set('category', categoryFilter);
@@ -154,7 +157,7 @@ export default function PBRecordsView() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, athleteFilter, exerciseFilter, categoryFilter, sorts]);
+  }, [page, teamFilter, athleteFilter, exerciseFilter, categoryFilter, sorts]);
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
@@ -192,11 +195,24 @@ export default function PBRecordsView() {
   }, []);
 
   const resetFilters = () => {
+    setTeamFilter('');
     setAthleteFilter('');
     setExerciseFilter('');
     setCategoryFilter('');
     setPage(1);
   };
+
+  // 队伍（运动项目）选项：按项目分组统计人数
+  const teamOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of athletes) {
+      const team = a.sport || '未登记';
+      counts.set(team, (counts.get(team) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([team, count]) => ({ team, count }))
+      .sort((x, y) => x.team.localeCompare(y.team, 'zh-CN'));
+  }, [athletes]);
 
   // 按分类分组（当前页数据内分组）
   const grouped = useMemo(() => {
@@ -342,12 +358,26 @@ export default function PBRecordsView() {
             筛选
           </div>
           <select
+            value={teamFilter}
+            onChange={(e) => {
+              setTeamFilter(e.target.value);
+              if (athleteFilter) setAthleteFilter('');
+              setPage(1);
+            }}
+            className="rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
+          >
+            <option value="">全部队伍</option>
+            {teamOptions.map(t => <option key={t.team} value={t.team}>{t.team}（{t.count}）</option>)}
+          </select>
+          <select
             value={athleteFilter}
             onChange={(e) => { setAthleteFilter(e.target.value); setPage(1); }}
             className="rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary"
           >
             <option value="">全部运动员</option>
-            {athletes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {athletes
+              .filter(a => !teamFilter || a.sport === teamFilter)
+              .map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
           <select
             value={categoryFilter}

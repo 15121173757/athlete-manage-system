@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const athleteIdParam = searchParams.get('athleteId');
     const exerciseIdParam = searchParams.get('exerciseId');
     const category = searchParams.get('category') || undefined;
+    const team = searchParams.get('team') || undefined;
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
 
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
           (sortDirections as readonly string[]).includes(s.direction)
       );
 
-    const result = await listPersonalBests({ athleteId, exerciseId, category, page, pageSize, sorts });
+    const result = await listPersonalBests({ athleteId, exerciseId, category, team, page, pageSize, sorts });
     return Response.json({ success: true, data: result });
   } catch (error) {
     return handleRouteError(error);

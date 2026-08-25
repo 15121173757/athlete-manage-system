@@ -48,6 +48,8 @@ model User {
   fitnessPlansCreated FitnessTestPlan[] @relation("FitnessPlanCreator")
   // 关联：录入的体能测试成绩
   fitnessResultsRecorded FitnessTestResult[] @relation("FitnessResultRecordedBy")
+  // 关联：报告中心保存的自定义报告模板
+  reportTemplates ReportTemplate[]
 
   @@map("users")
 }
@@ -491,6 +493,28 @@ model FitnessTestResult {
   @@unique([planId, athleteId, testId])
   @@index([planId, testId])
   @@map("fitness_test_results")
+}
+
+// ============================================================
+// 报告中心（自定义报告模板）
+// ============================================================
+
+model ReportTemplate {
+  id         Int      @id @default(autoincrement())
+  name       String                             // 模板名称
+  reportType String                             // 报告类型：training / fitness / injury
+  scope      String   @default("PERSONAL")      // 作用域：PERSONAL 个人 / GLOBAL 全局默认
+  ownerId    Int?                               // 所有者 ID（PERSONAL 时必填）
+  config     String   @default("{}")            // 指标配置 JSON（{ keys: string[] }）
+  isDefault  Boolean  @default(false)           // 是否为该报告类型的默认模板
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([reportType, scope, ownerId])
+  @@index([reportType, isDefault])
+  @@map("report_templates")
 }
 
 // ============================================================

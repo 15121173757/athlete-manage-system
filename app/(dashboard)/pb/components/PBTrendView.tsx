@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { TrendingUp, Download, RotateCcw, X } from 'lucide-react';
+import { TrendingUp, Download, RotateCcw, X, Search, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   LineChart,
@@ -11,7 +11,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  Brush,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -111,6 +110,138 @@ function mergeSeriesToChartData(
   });
 }
 
+/** 自定义时间范围滑条：完全受控，自管理 pointer/mouse 事件，替代 recharts Brush */
+interface TimeRangeSliderProps {
+  total: number;
+  start: number;
+  end: number;
+  onChange: (start: number, end: number) => void;
+  onReset: () => void;
+}
+
+function TimeRangeSlider({ total, start, end, onChange, onReset }: TimeRangeSliderProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  // dragRef 保存当前拖动会话；存在即代表「正在拖动」
+  const dragRef = useRef<{ mode: 'start' | 'end' | 'slide'; grabStart: number; grabIndex: number; span: number } | null>(null);
+
+  // 用 ref 反映最新 start/end/onChange，避免闭包读到旧值
+  const startRef = useRef(start);
+  const endRef = useRef(end);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    startRef.current = start;
+    endRef.current = end;
+    onChangeRef.current = onChange;
+  }, [start, end, onChange]);
+
+  const posToIndex = (clientX: number, el: HTMLDivElement) => {
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return Math.round(ratio * (total - 1));
+  };
+
+  // window 级 mousemove：仅在 dragRef 存在（拖动中）时生效，读取最新 ref 值避免闭包旧值
+  const onMove = (e: MouseEvent) => {
+    const d = dragRef.current;
+    const el = trackRef.current;
+    if (!d || !el) return;
+    const idx = posToIndex(e.clientX, el);
+    const totalSpan = total - 1;
+    let ns: number;
+    let ne: number;
+    if (d.mode === 'slide') {
+      // 保持窗口宽度整体平移
+      ns = Math.min(Math.max(d.grabStart + (idx - d.grabIndex), 0), Math.max(0, totalSpan - d.span));
+      ne = ns + d.span;
+    } else if (d.mode === 'start') {
+      ns = Math.min(idx, endRef.current - MIN_VISIBLE_POINTS);
+      ne = endRef.current;
+    } else {
+      ne = Math.max(idx, startRef.current + MIN_VISIBLE_POINTS);
+      ns = startRef.current;
+    }
+    onChangeRef.current(Math.max(0, ns), Math.min(totalSpan, ne));
+  };
+
+  // 释放（含窗口外/失焦兜底）：同步清空拖动状态并解除全部监听，确保滑块必然停止
+  const onStop = () => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onStop);
+    window.removeEventListener('blur', onStop);
+    document.removeEventListener('mouseleave', onStop);
+  };
+
+  const beginDrag = (mode: 'start' | 'end' | 'slide', e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = trackRef.current;
+    if (!el || total <= 1) return;
+    dragRef.current = {
+      mode,
+      grabStart: startRef.current,
+      grabIndex: posToIndex(e.clientX, el),
+      span: endRef.current - startRef.current,
+    };
+    // 同步绑定监听器：立即生效，避免「快速释放来不及解绑」的时序间隙
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onStop);
+    window.addEventListener('blur', onStop);
+    document.addEventListener('mouseleave', onStop);
+  };
+
+  if (total <= 1) return null;
+
+  const pct = (i: number) => (total <= 1 ? 0 : (i / (total - 1)) * 100);
+  const leftPct = pct(start);
+  const rightPct = pct(end);
+
+  return (
+    <div className="mt-2 select-none" title="拖拽手柄调整时间范围 · 双击复位">
+      <div
+        ref={trackRef}
+        role="group"
+        aria-label="时间范围比例尺"
+        className="relative h-6 w-full cursor-pointer rounded-md bg-ams-surface/60"
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onReset();
+        }}
+        onMouseDown={(e) => beginDrag('slide', e)}
+      >
+        {/* 已选时间范围高亮 */}
+        <div
+          className="absolute bottom-0 top-0 rounded-md bg-ams-primary/30"
+          style={{ left: `${leftPct}%`, width: `${Math.max(0, rightPct - leftPct)}%` }}
+        />
+        {/* 起始手柄 */}
+        <div
+          role="slider"
+          aria-label="起始范围手柄"
+          aria-valuemin={0}
+          aria-valuemax={Math.max(0, total - 1)}
+          aria-valuenow={start}
+          className="absolute top-1/2 z-10 h-5 w-2.5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-sm bg-ams-primary shadow-md"
+          style={{ left: `${leftPct}%` }}
+          onMouseDown={(e) => beginDrag('start', e)}
+        />
+        {/* 结束手柄 */}
+        <div
+          role="slider"
+          aria-label="结束范围手柄"
+          aria-valuemin={0}
+          aria-valuemax={Math.max(0, total - 1)}
+          aria-valuenow={end}
+          className="absolute top-1/2 z-10 h-5 w-2.5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-sm bg-ams-primary shadow-md"
+          style={{ left: `${rightPct}%` }}
+          onMouseDown={(e) => beginDrag('end', e)}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function PBTrendView() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -119,6 +250,11 @@ export default function PBTrendView() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // 训练项目选择器（方案A：搜索多选）状态
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const [series, setSeries] = useState<TrendSeries[]>([]);
   const [stats, setStats] = useState<TrendStats | null>(null);
@@ -209,6 +345,31 @@ export default function PBTrendView() {
       return [...prev, id];
     });
   };
+
+  // 按搜索关键词过滤可追踪项目
+  const filteredExercises = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return exercises;
+    return exercises.filter((e) => e.name.toLowerCase().includes(term));
+  }, [exercises, searchTerm]);
+
+  // 当前已选中的项目（用于 Tag 展示）
+  const selectedExercises = useMemo(
+    () => exercises.filter((e) => selectedIds.includes(e.id)),
+    [exercises, selectedIds]
+  );
+
+  // 点击面板外部时收起选择器
+  useEffect(() => {
+    if (!isPickerOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setIsPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [isPickerOpen]);
 
   const resetFilters = () => {
     setAthleteId('');
@@ -390,7 +551,7 @@ export default function PBTrendView() {
           </div>
         </div>
 
-        {/* 项目多选（最多 5 个） */}
+        {/* 项目多选（搜索 + 下拉面板，最多 5 个） */}
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between">
             <label className="text-xs text-ams-text-muted">
@@ -400,26 +561,128 @@ export default function PBTrendView() {
               已选 <span className="font-medium text-ams-primary">{selectedIds.length}</span>/5
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {exercises.map((e) => {
-              const active = selectedIds.includes(e.id);
-              return (
-                <button
-                  key={e.id}
-                  type="button"
-                  onClick={() => toggleExercise(e.id)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                    active
-                      ? 'border-ams-primary bg-ams-primary/15 text-ams-primary'
-                      : 'border-ams-border bg-ams-background text-ams-text-secondary hover:text-ams-text-primary hover:border-ams-primary/50'
-                  }`}
-                >
-                  {e.name}
-                  <span className="opacity-60">({e.unit})</span>
-                  {active && <X className="h-3 w-3" />}
-                </button>
-              );
-            })}
+
+          <div ref={pickerRef} className="relative">
+            {/* 触发器：展示已选 Tag + 展开按钮 */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setIsPickerOpen((v) => !v);
+                setSearchTerm('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsPickerOpen((v) => !v);
+                  setSearchTerm('');
+                }
+              }}
+              className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-ams border border-ams-border bg-ams-background px-3 py-2 text-sm text-ams-text-primary transition-colors hover:border-ams-primary/50"
+            >
+              <span className="flex flex-wrap items-center gap-1.5">
+                {selectedExercises.length === 0 ? (
+                  <span className="text-ams-text-muted">点击选择训练项目（支持搜索）</span>
+                ) : (
+                  selectedExercises.map((e) => (
+                    <span
+                      key={e.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-ams-primary/40 bg-ams-primary/15 px-2 py-0.5 text-xs text-ams-primary"
+                    >
+                      {e.name}
+                      <span className="opacity-60">({e.unit})</span>
+                      <button
+                        type="button"
+                        aria-label={`移除 ${e.name}`}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          toggleExercise(e.id);
+                        }}
+                        className="hover:text-ams-text-primary"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-ams-text-secondary transition-transform ${isPickerOpen ? 'rotate-180' : ''}`}
+              />
+            </div>
+
+            {/* 展开面板：搜索框 + 过滤列表 */}
+            {isPickerOpen && (
+              <div className="absolute z-20 mt-2 w-full rounded-ams border border-ams-border bg-ams-background shadow-lg">
+                <div className="border-b border-ams-border p-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ams-text-muted" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="搜索训练项目（如：蹲、跑、跳）"
+                      autoFocus
+                      className="w-full rounded-ams border border-ams-border bg-ams-background py-1.5 pl-8 pr-3 text-sm text-ams-text-primary placeholder:text-ams-text-muted focus:border-ams-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto p-2">
+                  {filteredExercises.length === 0 ? (
+                    <p className="px-2 py-4 text-center text-xs text-ams-text-muted">未找到匹配的训练项目</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                      {filteredExercises.map((e) => {
+                        const active = selectedIds.includes(e.id);
+                        const atLimit = !active && selectedIds.length >= 5;
+                        return (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => toggleExercise(e.id)}
+                            className={`flex items-center justify-between gap-2 rounded-ams border px-2.5 py-1.5 text-left text-xs transition-colors ${
+                              active
+                                ? 'border-ams-primary bg-ams-primary/15 text-ams-primary'
+                                : atLimit
+                                  ? 'border-ams-border bg-ams-background text-ams-text-muted opacity-60'
+                                  : 'border-ams-border bg-ams-background text-ams-text-secondary hover:border-ams-primary/50 hover:text-ams-text-primary'
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span className="truncate">{e.name}</span>
+                              <span className="shrink-0 opacity-60">({e.unit})</span>
+                            </span>
+                            <span className="shrink-0">
+                              {active ? (
+                                <Check className="h-3.5 w-3.5" />
+                              ) : (
+                                <span className="text-[10px] text-ams-text-muted">{e.category}</span>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between border-t border-ams-border px-3 py-1.5">
+                  <span className="text-[11px] text-ams-text-muted">
+                    {filteredExercises.length > 0
+                      ? `共 ${filteredExercises.length} 个匹配项目 · 已选 ${selectedIds.length}/5`
+                      : '无匹配项目'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsPickerOpen(false)}
+                    className="text-[11px] font-medium text-ams-primary hover:underline"
+                  >
+                    完成
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -529,24 +792,19 @@ export default function PBTrendView() {
                     isAnimationActive={false}
                   />
                 ))}
-                <Brush
-                  dataKey="date"
-                  height={28}
-                  stroke="#FF6B35"
-                  fill="#132F4C"
-                  travellerWidth={8}
-                  tickFormatter={(v: string) => v.slice(5)}
-                  startIndex={visibleWindow.start}
-                  endIndex={visibleWindow.end}
-                  onChange={(range) => {
-                    if (range && typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
-                      setViewWindow({ start: range.startIndex, end: range.endIndex });
-                    }
-                  }}
-                />
               </LineChart>
             </ResponsiveContainer>
           </div>
+        )}
+
+        {chartData.length > 1 && (
+          <TimeRangeSlider
+            total={chartData.length}
+            start={visibleWindow.start}
+            end={visibleWindow.end}
+            onChange={(s, e) => setViewWindow({ start: s, end: e })}
+            onReset={() => setViewWindow(null)}
+          />
         )}
 
         {series.length > 0 && (

@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Library,
   ClipboardList,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -35,7 +36,7 @@ interface NavGroup {
 
 // 版本化存储键：导航结构发生重构（如动作库并入核心业务、练习库/测试库改为 Tab、移除智能分析模块）时递增，
 // 避免旧排序数据（含已失效的 href）错误地将新增项追加到末尾。
-const STORAGE_KEY = 'ams-sidebar-nav-order-v4';
+const STORAGE_KEY = 'ams-sidebar-nav-order-v5';
 
 const defaultNavGroups: NavGroup[] = [
   {
@@ -49,6 +50,7 @@ const defaultNavGroups: NavGroup[] = [
       { label: 'PB追踪', href: '/pb', icon: Trophy },
       { label: '伤病与负荷监控', href: '/health', icon: HeartPulse },
       { label: '运动科学工具箱', href: '/tools', icon: FlaskConical },
+      { label: '报告中心', href: '/reports', icon: FileText },
     ],
   },
   {

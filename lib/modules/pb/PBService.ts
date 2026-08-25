@@ -205,6 +205,8 @@ export interface ListPersonalBestsParams {
   athleteId?: number;
   exerciseId?: number;
   category?: string;
+  /** 按运动项目（队伍）筛选 */
+  team?: string;
   page?: number;
   pageSize?: number;
   /**
@@ -220,12 +222,13 @@ export interface PBListSort {
 }
 
 export async function listPersonalBests(params: ListPersonalBestsParams) {
-  const { athleteId, exerciseId, category, sorts, page = 1, pageSize = 20 } = params;
+  const { athleteId, exerciseId, category, team, sorts, page = 1, pageSize = 20 } = params;
 
   const where: Record<string, unknown> = {};
   if (athleteId) where.athleteId = athleteId;
   if (exerciseId) where.exerciseId = exerciseId;
   if (category) where.exercise = { is: { category } };
+  if (team) where.athlete = { is: { sport: team } };
 
   // 构建排序：用户指定多条件排序时按其点击顺序应用；否则使用默认排序（成绩降序、达成日期降序）
   const orderBy: Prisma.PersonalBestOrderByWithRelationInput[] =

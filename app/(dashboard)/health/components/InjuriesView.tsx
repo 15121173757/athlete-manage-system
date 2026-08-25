@@ -19,8 +19,22 @@ import {
   Eye,
   Activity,
   ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+/** 伤病类型预设选项 */
+const INJURY_TYPE_OPTIONS = ['扭伤', '拉伤', '挫伤', '骨折', '脱位', '肌腱断裂', '慢性损伤'];
+
+/** 受伤部位预设选项 */
+const BODY_PART_OPTIONS = ['头颈部', '肩部', '肘部', '腕部', '脊柱/背部', '髋部/腹股沟', '膝部', '小腿', '踝关节', '足部'];
 
 interface InjuryHistory {
   id: number;
@@ -203,6 +217,27 @@ export default function InjuriesView() {
   const [athleteInjuries, setAthleteInjuries] = useState<Injury[]>([]);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
+  // 痊愈（标记为已回归）确认弹窗
+  const [recoverTarget, setRecoverTarget] = useState<Injury | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoverError, setRecoverError] = useState('');
+
+  // 删除确认弹窗
+  const [deleteTarget, setDeleteTarget] = useState<Injury | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  // 非阻塞 toast 提示（避免原生 alert/confirm 阻塞渲染进程导致 Trae 卡死）
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+  }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -294,18 +329,59 @@ export default function InjuriesView() {
     loadHistory(injury.id);
   };
 
-  const handleDelete = async (injury: Injury) => {
-    if (!confirm(`确定删除「${injury.athlete.name}」的伤病记录（${injury.injuryType}）？此操作不可撤销。`)) return;
+  /** 打开删除确认弹窗 */
+  const handleDelete = (injury: Injury) => {
+    setDeleteError('');
+    setDeleteTarget(injury);
+  };
+
+  /** 确认删除：调用后端删除接口，成功后刷新并给出非阻塞成功提示 */
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setDeleteError('');
     try {
-      const res = await fetch(`/api/health/injuries/${injury.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/health/injuries/${deleteTarget.id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
+        const name = deleteTarget.athlete?.name || '该运动员';
+        setDeleteTarget(null);
         fetchData();
+        showToast('success', `已删除「${name}」的伤病记录`);
       } else {
-        alert(json.error?.message || '删除失败');
+        setDeleteError(json.error?.message || '删除失败');
       }
     } catch {
-      alert('网络错误，删除失败');
+      setDeleteError('网络错误，删除失败');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  /** 标记痊愈：将伤病状态更新为「已回归」，并记录当前时间为康复时间 */
+  const handleRecoverConfirm = async () => {
+    if (!recoverTarget) return;
+    setIsRecovering(true);
+    setRecoverError('');
+    try {
+      const res = await fetch(`/api/health/injuries/${recoverTarget.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'RETURNED', endDate: new Date().toISOString() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const name = recoverTarget.athlete?.name || '该运动员';
+        setRecoverTarget(null);
+        fetchData();
+        showToast('success', `已将「${name}」标记为痊愈状态`);
+      } else {
+        setRecoverError(json.error?.message || '标记失败，请重试');
+      }
+    } catch {
+      setRecoverError('网络错误，标记失败');
+    } finally {
+      setIsRecovering(false);
     }
   };
 
@@ -323,8 +399,8 @@ export default function InjuriesView() {
     setFormError('');
     const athleteId = parseInt(form.athleteId);
     if (!form.athleteId || isNaN(athleteId)) { setFormError('请选择受伤人员'); return; }
-    if (!form.injuryType.trim()) { setFormError('伤病类型不能为空'); return; }
-    if (!form.bodyPart.trim()) { setFormError('受伤部位不能为空'); return; }
+    if (!form.injuryType.trim()) { setFormError('请选择伤病类型'); return; }
+    if (!form.bodyPart.trim()) { setFormError('请选择受伤部位'); return; }
     if (!form.cause.trim()) { setFormError('受伤原因不能为空'); return; }
     if (!form.diagnosis.trim()) { setFormError('诊断结果不能为空'); return; }
     if (!form.treatment.trim()) { setFormError('治疗方案不能为空'); return; }
@@ -370,7 +446,7 @@ export default function InjuriesView() {
       try {
         await uploadAttachment(injuryId);
       } catch (e) {
-        alert(e instanceof Error ? e.message : '附件上传失败，伤病记录已保存');
+        showToast('error', e instanceof Error ? e.message : '附件上传失败，伤病记录已保存');
       }
 
       setShowForm(false);
@@ -468,6 +544,15 @@ export default function InjuriesView() {
                           <Button variant="ghost" size="icon" title="编辑" onClick={(e) => { e.stopPropagation(); openEdit(i); }}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="痊愈"
+                            disabled={i.status === 'RETURNED'}
+                            onClick={(e) => { e.stopPropagation(); setRecoverError(''); setRecoverTarget(i); }}
+                          >
+                            <CheckCircle2 className="h-4 w-4 text-ams-success" />
+                          </Button>
                           <Button variant="ghost" size="icon" title="删除" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
                             <Trash2 className="h-4 w-4 text-ams-danger" />
                           </Button>
@@ -537,23 +622,35 @@ export default function InjuriesView() {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-ams-text-muted">伤病类型 *</label>
-                <input
-                  type="text"
+                <Select
                   value={form.injuryType}
-                  onChange={(e) => setForm({ ...form, injuryType: e.target.value })}
-                  placeholder="如：韧带拉伤"
-                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary focus:border-ams-primary focus:outline-none"
-                />
+                  onValueChange={(v) => setForm({ ...form, injuryType: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择伤病类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INJURY_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="mb-1 block text-xs text-ams-text-muted">受伤部位 *</label>
-                <input
-                  type="text"
+                <Select
                   value={form.bodyPart}
-                  onChange={(e) => setForm({ ...form, bodyPart: e.target.value })}
-                  placeholder="如：右膝"
-                  className="w-full rounded-ams bg-ams-background border border-ams-border px-3 py-2 text-sm text-ams-text-primary focus:border-ams-primary focus:outline-none"
-                />
+                  onValueChange={(v) => setForm({ ...form, bodyPart: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择受伤部位" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BODY_PART_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="mb-1 block text-xs text-ams-text-muted">受伤原因 *</label>
@@ -885,6 +982,109 @@ export default function InjuriesView() {
                 </section>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* 痊愈（标记为已回归）确认弹窗 */}
+      {recoverTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => { if (!isRecovering) { setRecoverTarget(null); setRecoverError(''); } }}
+        >
+          <div
+            className="w-full max-w-md rounded-ams border border-ams-border bg-ams-surface p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-ams-success" />
+              <h3 className="text-base font-semibold text-ams-text-primary">标记痊愈</h3>
+            </div>
+            <p className="text-sm leading-relaxed text-ams-text-secondary">
+              确认将该运动员标记为痊愈状态？此操作将自动记录当前时间为康复时间，并更新运动员状态为“已回归”。
+            </p>
+            {recoverError && (
+              <p className="mt-3 rounded-ams border border-ams-danger/30 bg-ams-danger/10 px-3 py-2 text-sm text-ams-danger">
+                {recoverError}
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                disabled={isRecovering}
+                onClick={() => { setRecoverTarget(null); setRecoverError(''); }}
+              >
+                取消
+              </Button>
+              <Button
+                variant="default"
+                disabled={isRecovering}
+                onClick={handleRecoverConfirm}
+              >
+                {isRecovering ? '处理中...' : '确认'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 非阻塞 toast 提示条（成功/失败反馈） */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 z-50 -translate-x-1/2" role="status">
+          <div
+            className={`flex items-center gap-2 rounded-ams border px-4 py-2.5 text-sm shadow-lg ${
+              toast.type === 'success'
+                ? 'border-ams-success/40 bg-ams-surface text-ams-text-primary'
+                : 'border-ams-danger/40 bg-ams-surface text-ams-danger'
+            }`}
+          >
+            {toast.type === 'success'
+              ? <CheckCircle2 className="h-4 w-4 text-ams-success" />
+              : <AlertTriangle className="h-4 w-4 text-ams-danger" />}
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* 删除确认弹窗 */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => { if (!isDeleting) { setDeleteTarget(null); setDeleteError(''); } }}
+        >
+          <div
+            className="w-full max-w-md rounded-ams border border-ams-border bg-ams-surface p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-ams-danger" />
+              <h3 className="text-base font-semibold text-ams-text-primary">删除伤病记录</h3>
+            </div>
+            <p className="text-sm leading-relaxed text-ams-text-secondary">
+              确定删除「{deleteTarget.athlete?.name || '该运动员'}」的伤病记录（{deleteTarget.injuryType}）？此操作不可撤销。
+            </p>
+            {deleteError && (
+              <p className="mt-3 rounded-ams border border-ams-danger/30 bg-ams-danger/10 px-3 py-2 text-sm text-ams-danger">
+                {deleteError}
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                disabled={isDeleting}
+                onClick={() => { setDeleteTarget(null); setDeleteError(''); }}
+              >
+                取消
+              </Button>
+              <Button
+                variant="default"
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className="bg-ams-danger text-white hover:bg-ams-danger/90"
+              >
+                {isDeleting ? '删除中...' : '确认删除'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
